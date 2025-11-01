@@ -1,0 +1,476 @@
+{% extends "base.html" %}
+
+{% block title %}Media Management - Telegram Stremio{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h1 class="text-3xl font-bold">Media Management</h1>
+            <p class="theme-text-secondary mt-2">Manage your movie and TV show collections</p>
+        </div>
+        
+        <div class="flex space-x-2">
+            <a href="/media/manage?media_type=movie" 
+               class="px-4 py-2 rounded-md transition-colors text-sm font-medium {% if media_type == 'movie' %}theme-primary text-white{% else %}theme-card border hover:bg-gray-50{% endif %}">
+                Movies
+            </a>
+            <a href="/media/manage?media_type=tv" 
+               class="px-4 py-2 rounded-md transition-colors text-sm font-medium {% if media_type == 'tv' %}theme-primary text-white{% else %}theme-card border hover:bg-gray-50{% endif %}">
+                TV Shows
+            </a>
+        </div>
+    </div>
+    
+    <!-- Search and Filters -->
+    <div class="theme-card p-6 rounded-lg shadow mb-8">
+        <div class="flex flex-col md:flex-row gap-4">
+            <div class="flex-1">
+                <input type="text" id="search-input" placeholder="Search {{ media_type }}s by title..." 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm">
+            </div>
+            <div class="flex gap-2">
+                <button onclick="searchMedia()" 
+                        class="theme-primary text-white px-6 py-2 rounded-md hover:opacity-90 transition-opacity text-sm font-medium">
+                    Search
+                </button>
+                <button onclick="clearSearch()" 
+                        class="border border-gray-300 px-6 py-2 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
+                    Clear
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading Indicator -->
+    <div id="loading" class="text-center py-12 hidden">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+        <p class="theme-text-secondary">Loading {{ media_type }}s...</p>
+    </div>
+    
+    <!-- Error Display -->
+    <div id="error-display" class="hidden mb-8">
+        <div class="theme-card p-6 rounded-lg shadow border-l-4 border-red-500">
+            <div class="flex items-center mb-4">
+                <svg class="h-6 w-6 text-red-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.996-.833-2.764 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <h3 class="text-lg font-semibold text-red-700">Error Loading Media</h3>
+            </div>
+            <p id="error-message" class="text-red-600 mb-4"></p>
+            <button onclick="retryLoad()" 
+                    class="theme-primary text-white px-4 py-2 rounded-md hover:opacity-90 transition-opacity text-sm">
+                Try Again
+            </button>
+        </div>
+    </div>
+    
+    <!-- Media Grid -->
+    <div id="media-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4 mb-8">
+        <!-- Media items will be loaded here via JavaScript -->
+    </div>
+    
+    <!-- No Results Message -->
+    <div id="no-results" class="text-center py-12 hidden">
+        <div class="theme-card p-8 rounded-lg shadow">
+            <svg class="mx-auto h-16 w-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2h4a1 1 0 110 2h-1v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6H3a1 1 0 110-2h4zM9 6v10h6V6H9z"/>
+            </svg>
+            <h3 class="text-lg font-semibold theme-text-secondary mb-2">No {{ media_type }}s found</h3>
+            <p class="theme-text-secondary text-sm mb-4">
+                {% if media_type == 'movie' %}
+                No movies match your search criteria
+                {% else %}
+                No TV shows match your search criteria
+                {% endif %}
+            </p>
+            <button onclick="clearSearch()" 
+                    class="theme-primary text-white px-4 py-2 rounded-md hover:opacity-90 transition-opacity text-sm">
+                Show All {{ media_type|title }}s
+            </button>
+        </div>
+    </div>
+    
+    <!-- Pagination -->
+    <div id="pagination" class="flex justify-center items-center space-x-2 mt-8 hidden">
+        <!-- Pagination will be loaded here via JavaScript -->
+    </div>
+    
+    <!-- Media Info -->
+    <div id="media-info" class="theme-card p-4 rounded-lg shadow mt-6 hidden">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-sm theme-text-secondary">
+            <span id="results-info"></span>
+            <span id="db-info"></span>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentPage = 1;
+let currentSearch = '';
+let isLoading = false;
+const mediaType = '{{ media_type }}';
+
+// Show loading state
+function showLoading() {
+    isLoading = true;
+    document.getElementById('loading').classList.remove('hidden');
+    document.getElementById('media-grid').classList.add('hidden');
+    document.getElementById('no-results').classList.add('hidden');
+    document.getElementById('pagination').classList.add('hidden');
+    document.getElementById('media-info').classList.add('hidden');
+    document.getElementById('error-display').classList.add('hidden');
+}
+
+// Hide loading state
+function hideLoading() {
+    isLoading = false;
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('media-grid').classList.remove('hidden');
+}
+
+// Show error state
+function showError(message) {
+    document.getElementById('error-message').textContent = message;
+    document.getElementById('error-display').classList.remove('hidden');
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('media-grid').classList.add('hidden');
+    document.getElementById('no-results').classList.add('hidden');
+}
+
+// Load media with proper error handling
+async function loadMedia(page = 1, search = '') {
+    if (isLoading) return; // Prevent multiple simultaneous requests
+    
+    showLoading();
+    currentPage = page;
+    currentSearch = search;
+    
+    try {
+        const url = `/api/media/list?media_type=${mediaType}&page=${page}&page_size=24&search=${encodeURIComponent(search)}`;
+        console.log('Fetching:', url);
+        
+        const response = await fetch(url, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+            throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Response data:', data);
+        
+        hideLoading();
+        
+        const grid = document.getElementById('media-grid');
+        const mediaKey = mediaType === 'movie' ? 'movies' : 'tv_shows';
+        const mediaItems = data[mediaKey] || [];
+        
+        if (mediaItems.length === 0) {
+            grid.innerHTML = '';
+            document.getElementById('no-results').classList.remove('hidden');
+            document.getElementById('pagination').classList.add('hidden');
+            document.getElementById('media-info').classList.add('hidden');
+            return;
+        }
+        
+        document.getElementById('no-results').classList.add('hidden');
+        
+        // Render media items
+        grid.innerHTML = mediaItems.map(item => createMediaCard(item)).join('');
+        
+        // Update pagination
+        updatePagination(data.current_page || page, data.total_pages || 1);
+        
+        // Update info
+        updateMediaInfo(data);
+        
+    } catch (error) {
+        console.error('Error loading media:', error);
+        hideLoading();
+        showError(`Failed to load ${mediaType}s: ${error.message}`);
+    }
+}
+
+// Create media card HTML
+function createMediaCard(item) {
+    const title = item.title || item.name || 'Unknown Title';
+    const year = item.release_year || 'Unknown Year';
+    const rating = item.rating ? `⭐ ${parseFloat(item.rating).toFixed(1)}` : '';
+    const poster = item.poster || 'https://via.placeholder.com/300x450/e5e7eb/9ca3af?text=No+Image';
+    
+    return `
+        <div class="theme-card rounded-lg shadow hover:shadow-lg transition-all duration-300 group overflow-hidden">
+            <div class="relative">
+                <div class="aspect-w-2 aspect-h-3">
+                    <img src="${poster}" 
+                         alt="${title}" 
+                         class="w-full h-64 object-cover"
+                         onerror="this.src='https://via.placeholder.com/300x450/e5e7eb/9ca3af?text=No+Image'"
+                         loading="lazy">
+                </div>
+                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300"></div>
+            </div>
+            <div class="p-3">
+                <h3 class="font-semibold text-sm mb-1 line-clamp-2 min-h-[2.5rem]" title="${title}">
+                    ${title}
+                </h3>
+                <div class="flex items-center justify-between text-xs theme-text-secondary mb-3">
+                    <span>${year}</span>
+                    ${rating ? `<span>${rating}</span>` : ''}
+                </div>
+                <div class="flex justify-between items-center">
+                    <a href="/media/edit?tmdb_id=${item.tmdb_id}&db_index=${item.db_index}&media_type=${mediaType}" 
+                       class="text-primary hover:underline text-xs font-medium px-2 py-1 rounded transition-colors hover:bg-blue-50">
+                        Edit
+                    </a>
+                    <button onclick="deleteMedia(${item.tmdb_id}, ${item.db_index}, '${title.replace(/'/g, "\\'")}')" 
+                            class="text-red-600 hover:underline text-xs font-medium px-2 py-1 rounded transition-colors hover:bg-red-50">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Update pagination
+function updatePagination(currentPage, totalPages) {
+    const pagination = document.getElementById('pagination');
+    
+    if (totalPages <= 1) {
+        pagination.classList.add('hidden');
+        return;
+    }
+    
+    pagination.classList.remove('hidden');
+    let paginationHTML = '';
+    
+    // Previous button
+    if (currentPage > 1) {
+        paginationHTML += `
+            <button onclick="loadMedia(${currentPage - 1}, '${currentSearch}')" 
+                    class="px-3 py-2 border rounded-md hover:bg-gray-50 transition-colors text-sm">
+                Previous
+            </button>
+        `;
+    }
+    
+    // Page numbers
+    const startPage = Math.max(1, currentPage - 2);
+    const endPage = Math.min(totalPages, currentPage + 2);
+    
+    // First page
+    if (startPage > 1) {
+        paginationHTML += `
+            <button onclick="loadMedia(1, '${currentSearch}')" 
+                    class="px-3 py-2 border rounded-md hover:bg-gray-50 transition-colors text-sm">
+                1
+            </button>
+        `;
+        if (startPage > 2) {
+            paginationHTML += `<span class="px-3 py-2 text-sm">...</span>`;
+        }
+    }
+    
+    // Page range
+    for (let i = startPage; i <= endPage; i++) {
+        const isActive = i === currentPage;
+        paginationHTML += `
+            <button onclick="loadMedia(${i}, '${currentSearch}')" 
+                    class="px-3 py-2 border rounded-md transition-colors text-sm ${
+                        isActive ? 'theme-primary text-white border-primary' : 'hover:bg-gray-50'
+                    }">
+                ${i}
+            </button>
+        `;
+    }
+    
+    // Last page
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            paginationHTML += `<span class="px-3 py-2 text-sm">...</span>`;
+        }
+        paginationHTML += `
+            <button onclick="loadMedia(${totalPages}, '${currentSearch}')" 
+                    class="px-3 py-2 border rounded-md hover:bg-gray-50 transition-colors text-sm">
+                ${totalPages}
+            </button>
+        `;
+    }
+    
+    // Next button
+    if (currentPage < totalPages) {
+        paginationHTML += `
+            <button onclick="loadMedia(${currentPage + 1}, '${currentSearch}')" 
+                    class="px-3 py-2 border rounded-md hover:bg-gray-50 transition-colors text-sm">
+                Next
+            </button>
+        `;
+    }
+    
+    pagination.innerHTML = paginationHTML;
+}
+
+// Update media info display
+function updateMediaInfo(data) {
+    const mediaInfo = document.getElementById('media-info');
+    const resultsInfo = document.getElementById('results-info');
+    const dbInfo = document.getElementById('db-info');
+    
+    const startItem = ((data.current_page - 1) * 24) + 1;
+    const endItem = Math.min(data.current_page * 24, data.total_count);
+    
+    resultsInfo.textContent = `Showing ${startItem}-${endItem} of ${data.total_count} ${mediaType}s`;
+    
+    if (data.databases_checked && data.databases_checked.length > 0) {
+        dbInfo.textContent = `Database${data.databases_checked.length > 1 ? 's' : ''}: ${data.databases_checked.join(', ')}`;
+    }
+    
+    mediaInfo.classList.remove('hidden');
+}
+
+// Search functionality
+function searchMedia() {
+    const searchInput = document.getElementById('search-input');
+    const search = searchInput.value.trim();
+    loadMedia(1, search);
+}
+
+// Clear search
+function clearSearch() {
+    document.getElementById('search-input').value = '';
+    loadMedia(1, '');
+}
+
+// Retry load function
+function retryLoad() {
+    loadMedia(currentPage, currentSearch);
+}
+
+// Delete media with confirmation
+async function deleteMedia(tmdbId, dbIndex, title) {
+    if (!confirm(`Are you sure you want to delete "${title}"?\n\nThis action cannot be undone.`)) return;
+    
+    try {
+        const response = await fetch(`/api/media/delete?tmdb_id=${tmdbId}&db_index=${dbIndex}&media_type=${mediaType}`, {
+            method: 'DELETE',
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.ok) {
+            // Show success message briefly
+            const successMsg = document.createElement('div');
+            successMsg.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50';
+            successMsg.textContent = `"${title}" deleted successfully`;
+            document.body.appendChild(successMsg);
+            
+            setTimeout(() => {
+                document.body.removeChild(successMsg);
+            }, 3000);
+            
+            // Reload current page
+            loadMedia(currentPage, currentSearch);
+        } else {
+            const error = await response.json();
+            alert(`Error deleting "${title}": ${error.detail || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error('Error deleting media:', error);
+        alert(`Error deleting "${title}": ${error.message}`);
+    }
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', () => {
+    // Load media on page load
+    loadMedia();
+    
+    // Add enter key listener to search input
+    document.getElementById('search-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            searchMedia();
+        }
+    });
+    
+    // Add input event for real-time search (with debouncing)
+    let searchTimeout;
+    document.getElementById('search-input').addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        const searchValue = e.target.value.trim();
+        
+        if (searchValue.length === 0) {
+            searchTimeout = setTimeout(() => {
+                loadMedia(1, '');
+            }, 300);
+        }
+    });
+});
+</script>
+
+<style>
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.aspect-w-2 {
+    position: relative;
+    padding-bottom: 150%; /* 2:3 aspect ratio */
+}
+
+.aspect-w-2 > img {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+
+@media (max-width: 640px) {
+    .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+}
+
+@media (min-width: 1536px) {
+    .grid {
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+    }
+}
+
+/* Loading animation */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+</style>
+{% endblock %}

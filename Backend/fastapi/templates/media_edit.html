@@ -1,0 +1,533 @@
+{% extends "base.html" %}
+
+{% block title %}Edit {{ media_type|title }} - Telegram Stremio{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+    <!-- Header -->
+    <div class="mb-6 sm:mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <a href="/media/manage?media_type={{ media_type }}" class="text-primary hover:underline flex items-center text-sm sm:text-base">
+                <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Back to {{ media_type|title }}s
+            </a>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-bold mt-2">Edit {{ media_type|title }}</h1>
+        <p class="theme-text-secondary text-sm sm:text-base mt-1 sm:mt-2">TMDB ID: {{ tmdb_id }} | DB Index: {{ db_index }}</p>
+    </div>
+    
+    <!-- Media Preview -->
+    {% if media_details %}
+    <div class="theme-card rounded-lg shadow mb-6 sm:mb-8 overflow-hidden">
+        
+        <!-- Mobile Layout (Stack vertically) -->
+        <div class="block sm:hidden">
+            <!-- Poster Section -->
+            <div class="bg-gradient-to-br from-gray-800 to-gray-900 p-6">
+                <div class="flex flex-col items-center text-center">
+                    <img src="{{ media_details.poster or '/static/placeholder.jpg' }}" 
+                         alt="{{ media_details.title }}" 
+                         class="w-32 h-48 object-cover rounded-lg shadow-xl border-4 border-white mb-4"
+                         onerror="this.src='https://via.placeholder.com/300x450/e5e7eb/9ca3af?text=No+Image'">
+                    <h2 class="text-xl font-bold text-white mb-2">{{ media_details.title }}</h2>
+                    <div class="flex flex-wrap justify-center items-center gap-2 mb-3">
+                        {% if media_details.rating %}
+                        <span class="bg-yellow-500 text-black px-2 py-1 rounded text-sm font-bold">
+                            ⭐ {{ media_details.rating }}
+                        </span>
+                        {% endif %}
+                        <span class="text-white text-sm bg-white/20 px-2 py-1 rounded">{{ media_details.release_year }}</span>
+                    </div>
+                    <div class="flex flex-wrap justify-center gap-1">
+                        {% for genre in media_details.genres[:4] %}
+                        <span class="bg-white/20 text-white px-2 py-1 rounded-full text-xs">{{ genre }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backdrop Section -->
+            {% if media_details.backdrop %}
+            <div class="relative h-48 overflow-hidden">
+                <img src="{{ media_details.backdrop }}" 
+                     alt="{{ media_details.title }} backdrop" 
+                     class="w-full h-full object-cover"
+                     onerror="this.style.display='none'">
+                <div class="absolute inset-0 bg-black/30"></div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Desktop Layout (Original backdrop style) -->
+        <div class="hidden sm:block">
+            {% if media_details.backdrop %}
+            <div class="relative h-64 md:h-80 bg-gradient-to-r from-gray-900 to-gray-700">
+                <img src="{{ media_details.backdrop }}" 
+                     alt="{{ media_details.title }} backdrop" 
+                     class="w-full h-full object-cover opacity-60"
+                     onerror="this.style.display='none'">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+                <div class="absolute bottom-0 left-0 right-0 p-6">
+                    <div class="flex items-end gap-6">
+                        <img src="{{ media_details.poster or '/static/placeholder.jpg' }}" 
+                             alt="{{ media_details.title }}" 
+                             class="w-32 md:w-48 h-48 md:h-72 object-cover rounded-lg shadow-2xl border-4 border-white"
+                             onerror="this.src='https://via.placeholder.com/300x450/e5e7eb/9ca3af?text=No+Image'">
+                        <div class="text-white flex-1">
+                            <h2 class="text-2xl md:text-4xl font-bold mb-2">{{ media_details.title }}</h2>
+                            <div class="flex flex-wrap items-center gap-4 mb-4">
+                                {% if media_details.rating %}
+                                <span class="bg-yellow-500 text-black px-2 py-1 rounded text-sm font-bold">
+                                    ⭐ {{ media_details.rating }}
+                                </span>
+                                {% endif %}
+                                <span class="text-lg">{{ media_details.release_year }}</span>
+
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                {% for genre in media_details.genres[:6] %}
+                                <span class="bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm">{{ genre }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- Fallback without backdrop for desktop -->
+            <div class="p-6">
+                <div class="flex items-start gap-6">
+                    <div class="flex-shrink-0">
+                        <img src="{{ media_details.poster or '/static/placeholder.jpg' }}" 
+                             alt="{{ media_details.title }}" 
+                             class="w-48 h-72 object-cover rounded-lg shadow-lg"
+                             onerror="this.src='https://via.placeholder.com/300x450/e5e7eb/9ca3af?text=No+Image'">
+                    </div>
+                    <div class="flex-1">
+                        <h2 class="text-2xl font-bold mb-2">{{ media_details.title }}</h2>
+                        <p class="theme-text-secondary mb-4">{{ media_details.release_year }} • Rating: {{ media_details.rating or 'N/A' }}</p>
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            {% for genre in media_details.genres[:6] %}
+                            <span class="bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-sm">{{ genre }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Description (common for both layouts) -->
+        {% if media_details.description %}
+        <div class="px-4 sm:px-6 pb-4 sm:pb-6">
+            <h3 class="text-base sm:text-lg font-semibold mb-2">Overview</h3>
+            <p class="theme-text-secondary leading-relaxed text-sm sm:text-base">{{ media_details.description }}</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <!-- Edit Form -->
+    <div class="theme-card p-4 sm:p-6 rounded-lg shadow mb-6 sm:mb-8">
+        <h3 class="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">Edit Details</h3>
+        <form onsubmit="updateMedia(event)" id="edit-form">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6">
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium mb-2">Title *</label>
+                    <input type="text" id="title" name="title" 
+                           value="{{ media_details.title if media_details else '' }}"
+                           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Release Year *</label>
+                    <input type="number" id="release_year" name="release_year" 
+                           value="{{ media_details.release_year if media_details else '' }}"
+                           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Rating (0-10)</label>
+                    <input type="number" step="0.1" min="0" max="10" id="rating" name="rating" 
+                           value="{{ media_details.rating if media_details else '' }}"
+                           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium mb-2">Logo URL</label>
+                    <input type="url" id="logo" name="logo" 
+                           value="{{ media_details.logo if media_details else '' }}"
+                           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+                
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium mb-2">Poster URL</label>
+                    <input type="url" id="poster" name="poster" 
+                           value="{{ media_details.poster if media_details else '' }}"
+                           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium mb-2">Backdrop URL</label>
+                    <input type="url" id="backdrop" name="backdrop" 
+                           value="{{ media_details.backdrop if media_details else '' }}"
+                           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2">Description</label>
+                <textarea id="description" name="description" rows="3" 
+                          class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">{{ media_details.description if media_details else '' }}</textarea>
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2">Genres (comma-separated)</label>
+                <input type="text" id="genres" name="genres" 
+                       value="{% if media_details and media_details.genres %}{{ media_details.genres|join(', ') }}{% endif %}"
+                       class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                       placeholder="Action, Comedy, Drama">
+            </div>
+            
+            <div class="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4">
+                <button type="button" onclick="window.history.back()" 
+                        class="w-full sm:w-auto px-6 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-sm">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="w-full sm:w-auto theme-primary text-white px-6 py-2 rounded-md hover:opacity-90 transition-opacity text-sm">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Quality Management -->
+    {% if media_details %}
+    <div class="theme-card p-4 sm:p-6 rounded-lg shadow">
+        <h3 class="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">Available Content</h3>
+        
+        {% if media_type == 'movie' and media_details.telegram %}
+        <!-- Movie Qualities (sorted by quality) -->
+        <div class="space-y-3">
+            {% set sorted_qualities = media_details.telegram|sort(attribute='quality') %}
+            {% for quality in sorted_qualities %}
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg border gap-3 sm:gap-0">
+                <div class="flex-1">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 w-fit">
+                            {{ quality.quality }}
+                        </span>
+                        <span class="text-sm text-gray-600">{{ quality.size }}</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-2 sm:mt-1 break-all">{{ quality.name }}</p>
+                </div>
+                <button onclick="deleteQuality('{{ quality.quality }}')" 
+                        class="self-start sm:self-center text-red-600 hover:text-red-800 hover:bg-red-50 px-3 py-1 rounded transition-colors text-sm">
+                    Delete
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% elif media_type == 'tv' and media_details.seasons %}
+        <!-- TV Show Seasons and Episodes (sorted) -->
+        <div class="space-y-4 sm:space-y-6">
+            {% for season in media_details.seasons|sort(attribute='season_number') %}
+            <div class="border border-gray-200 rounded-lg overflow-hidden">
+                <!-- Season Header -->
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-base sm:text-lg font-semibold text-gray-900">Season {{ season.season_number }}</h4>
+                        <div class="flex items-center gap-2 sm:gap-4">
+                            <span class="text-xs sm:text-sm text-gray-600">{{ season.episodes|length }} episode{{ 's' if season.episodes|length != 1 else '' }}</span>
+                            <button onclick="toggleSeason({{ loop.index0 }})" 
+                                    class="text-blue-600 hover:text-blue-800 transition-colors p-1">
+                                <svg id="season-arrow-{{ loop.index0 }}" class="w-4 h-4 sm:w-5 sm:h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Episodes List (sorted by episode number) -->
+                <div id="season-content-{{ loop.index0 }}" class="season-content">
+                    <div class="divide-y divide-gray-100">
+                        {% for episode in season.episodes|sort(attribute='episode_number') %}
+                        <div class="p-3 sm:p-4 hover:bg-gray-50 transition-colors">
+                            <div class="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
+                                <!-- Episode Number -->
+                                <div class="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto sm:mx-0">
+                                    <span class="text-sm font-bold text-blue-800">{{ episode.episode_number }}</span>
+                                </div>
+                                
+                                <!-- Episode Info -->
+                                <div class="flex-1 min-w-0">
+                                    <h5 class="text-sm font-medium text-gray-900 mb-2 text-center sm:text-left">{{ episode.title }}</h5>
+                                    
+                                    <!-- Episode Qualities (sorted by quality) -->
+                                    {% if episode.telegram %}
+                                    <div class="space-y-2">
+                                        {% set sorted_episode_qualities = episode.telegram|sort(attribute='quality') %}
+                                        {% for quality in sorted_episode_qualities %}
+                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between bg-white border border-gray-200 rounded-md p-3 gap-2 sm:gap-0">
+                                            <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 w-fit">
+                                                    {{ quality.quality }}
+                                                </span>
+                                                <span class="text-xs text-gray-500">{{ quality.size }}</span>
+                                                <span class="text-xs text-gray-400 break-all">{{ quality.name }}</span>
+                                            </div>
+                                            <button onclick="deleteTVQuality({{ season.season_number }}, {{ episode.episode_number }}, '{{ quality.quality }}')" 
+                                                    class="self-start sm:self-center text-red-600 hover:text-red-800 hover:bg-red-50 px-2 py-1 rounded transition-colors text-xs">
+                                                Delete
+                                            </button>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% else %}
+                                    <p class="text-xs text-gray-400 text-center sm:text-left">No qualities available</p>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Episode Actions -->
+                                <div class="flex-shrink-0 flex justify-center sm:justify-start">
+                                    <button onclick="deleteTVEpisode({{ season.season_number }}, {{ episode.episode_number }})" 
+                                            class="text-red-600 hover:text-red-800 hover:bg-red-50 px-2 py-1 rounded text-xs transition-colors">
+                                        Delete Episode
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Season Actions -->
+                    <div class="px-3 sm:px-4 py-3 bg-gray-50 border-t border-gray-200 text-center sm:text-left">
+                        <button onclick="deleteTVSeason({{ season.season_number }})" 
+                                class="text-red-600 hover:text-red-800 hover:bg-red-100 px-3 py-1 rounded text-sm transition-colors">
+                            Delete Entire Season
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-8">
+            <svg class="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2h4a1 1 0 110 2h-1v12a2 2 0 01-2-2V6H3a1 1 0 110-2h4zM9 6v10h6V6H9z"/>
+            </svg>
+            <p class="theme-text-secondary text-sm sm:text-base">No content available</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+const tmdbId = {{ tmdb_id }};
+const dbIndex = {{ db_index }};
+const mediaType = '{{ media_type }}';
+
+// Toggle season visibility
+function toggleSeason(seasonIndex) {
+    const content = document.getElementById(`season-content-${seasonIndex}`);
+    const arrow = document.getElementById(`season-arrow-${seasonIndex}`);
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        arrow.style.transform = 'rotate(0deg)';
+    } else {
+        content.style.display = 'none';
+        arrow.style.transform = 'rotate(-90deg)';
+    }
+}
+
+// Update media
+async function updateMedia(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const updateData = {};
+    
+    // Convert form data to object
+    for (let [key, value] of formData.entries()) {
+        if (key === 'genres') {
+            updateData[key] = value.split(',').map(g => g.trim()).filter(g => g);
+        } else if (key === 'rating' || key === 'release_year' || key === 'runtime') {
+            updateData[key] = value ? parseFloat(value) : null;
+        } else {
+            updateData[key] = value || null;
+        }
+    }
+    
+    try {
+        const response = await fetch(`/api/media/update?tmdb_id=${tmdbId}&db_index=${dbIndex}&media_type=${mediaType}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(updateData)
+        });
+        
+        if (response.ok) {
+            showSuccessMessage('Media updated successfully');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            const error = await response.json();
+            showErrorMessage(`Error updating media: ${error.detail || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error('Error updating media:', error);
+        showErrorMessage('Error updating media. Please try again.');
+    }
+}
+
+// Delete quality from movie
+async function deleteQuality(quality) {
+    if (!confirm(`Are you sure you want to delete the ${quality} quality?`)) return;
+    
+    try {
+        const response = await fetch(`/api/media/delete-quality?tmdb_id=${tmdbId}&db_index=${dbIndex}&quality=${encodeURIComponent(quality)}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            showSuccessMessage(`${quality} quality deleted successfully`);
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            const error = await response.json();
+            showErrorMessage(`Error deleting quality: ${error.detail || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error('Error deleting quality:', error);
+        showErrorMessage('Error deleting quality. Please try again.');
+    }
+}
+
+// Delete TV quality
+async function deleteTVQuality(season, episode, quality) {
+    if (!confirm(`Are you sure you want to delete the ${quality} quality from Season ${season} Episode ${episode}?`)) return;
+    
+    try {
+        const response = await fetch(`/api/media/delete-tv-quality?tmdb_id=${tmdbId}&db_index=${dbIndex}&season=${season}&episode=${episode}&quality=${encodeURIComponent(quality)}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            showSuccessMessage(`${quality} quality deleted successfully`);
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            const error = await response.json();
+            showErrorMessage(`Error deleting quality: ${error.detail || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error('Error deleting quality:', error);
+        showErrorMessage('Error deleting quality. Please try again.');
+    }
+}
+
+// Delete TV episode
+async function deleteTVEpisode(season, episode) {
+    if (!confirm(`Are you sure you want to delete Season ${season} Episode ${episode}?\n\nThis will remove the entire episode and all its qualities.`)) return;
+    
+    try {
+        const response = await fetch(`/api/media/delete-tv-episode?tmdb_id=${tmdbId}&db_index=${dbIndex}&season=${season}&episode=${episode}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            showSuccessMessage(`Episode ${episode} deleted successfully`);
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            const error = await response.json();
+            showErrorMessage(`Error deleting episode: ${error.detail || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error('Error deleting episode:', error);
+        showErrorMessage('Error deleting episode. Please try again.');
+    }
+}
+
+// Delete TV season
+async function deleteTVSeason(season) {
+    if (!confirm(`Are you sure you want to delete the entire Season ${season}?\n\nThis will remove all episodes and qualities in this season. This action cannot be undone.`)) return;
+    
+    try {
+        const response = await fetch(`/api/media/delete-tv-season?tmdb_id=${tmdbId}&db_index=${dbIndex}&season=${season}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            showSuccessMessage(`Season ${season} deleted successfully`);
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            const error = await response.json();
+            showErrorMessage(`Error deleting season: ${error.detail || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error('Error deleting season:', error);
+        showErrorMessage('Error deleting season. Please try again.');
+    }
+}
+
+// Show success message
+function showSuccessMessage(message) {
+    const msg = document.createElement('div');
+    msg.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 sm:px-6 py-3 rounded-lg shadow-lg z-50 flex items-center max-w-sm';
+    msg.innerHTML = `
+        <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        <span class="text-sm">${message}</span>
+    `;
+    document.body.appendChild(msg);
+    setTimeout(() => {
+        if (document.body.contains(msg)) {
+            document.body.removeChild(msg);
+        }
+    }, 4000);
+}
+
+// Show error message
+function showErrorMessage(message) {
+    const msg = document.createElement('div');
+    msg.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 sm:px-6 py-3 rounded-lg shadow-lg z-50 flex items-center max-w-sm';
+    msg.innerHTML = `
+        <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+        <span class="text-sm">${message}</span>
+    `;
+    document.body.appendChild(msg);
+    setTimeout(() => {
+        if (document.body.contains(msg)) {
+            document.body.removeChild(msg);
+        }
+    }, 5000);
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize all seasons as collapsed except the first one
+    document.querySelectorAll('.season-content').forEach((content, index) => {
+        if (index > 0) {
+            content.style.display = 'none';
+            document.getElementById(`season-arrow-${index}`).style.transform = 'rotate(-90deg)';
+        }
+    });
+});
+</script>
+
+<style>
+.season-content {
+    transition: all 0.3s ease;
+}
+
+/* Better responsive design */
+.break-all {
+    word-break: break-all;
+    overflow-wrap: break-word;
+}
+</style>
+{% endblock %}

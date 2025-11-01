@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Telegram Stremio{% endblock %}
+
+{% block content %}
+<div class="min-h-screen">
+    <!-- Header with just status pill -->
+    <header class="theme-card shadow-lg mb-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-3xl font-bold text-primary">System Overview</h1>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        <!-- System Status Section -->
+        <div class="mb-12">
+            <div class="grid lg:grid-cols-2 gap-8">
+                <!-- System Status Card -->
+                <div class="theme-card rounded-xl p-8 shadow-xl">
+                    <div class="flex items-center mb-6">
+                        <div class="w-12 h-12 theme-primary rounded-lg flex items-center justify-center mr-4 bg-opacity-20 text-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="white">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-semibold">System Status</h3>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center py-3 px-4 bg-gray-50 rounded-lg">
+                            <span class="font-medium theme-text-secondary">Uptime</span>
+                            <span class="text-primary font-semibold">{{ system_stats.uptime or 'N/A' }}</span>
+                        </div>
+                        <div class="flex justify-between items-center py-3 px-4 bg-gray-50 rounded-lg">
+                            <span class="font-medium theme-text-secondary">Telegram Bot</span>
+                            <span class="text-primary font-semibold">{{ system_stats.telegram_bot or '@StreamBot' }}</span>
+                        </div>
+                        <div class="flex justify-between items-center py-3 px-4 bg-gray-50 rounded-lg">
+                            <span class="font-medium theme-text-secondary">Connected Bots</span>
+                            <span class="text-primary font-semibold">{{ system_stats.connected_bots|default(0) }}</span>
+                        </div>
+                        <div class="flex justify-between items-center py-3 px-4 bg-gray-50 rounded-lg">
+                            <span class="font-medium theme-text-secondary">Backend Version</span>
+                            <span class="text-primary font-semibold">v{{ system_stats.version or '1.0.0' }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bot Workload Accordion (Collapsed by default) -->
+                <div class="theme-card rounded-xl p-8 shadow-xl">
+                    <div class="flex items-center justify-between cursor-pointer" onclick="toggleAccordion('workload-content')">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 theme-primary rounded-lg flex items-center justify-center mr-4 bg-opacity-20 text-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="white">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-2xl font-semibold">Bot Workloads</h3>
+                        </div>
+                        <svg id="workload-content-icon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-primary transition-transform duration-200 transform rotate-0" fill="none" viewBox="0 0 24 24" stroke="white">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </div>
+                    
+                    <div id="workload-content" class="hidden mt-6 space-y-3">
+                        {% if system_stats.loads and system_stats.loads|length > 0 %}
+                            {% for bot_name, load in system_stats.loads.items() %}
+                            <div class="flex justify-between items-center py-3 px-4 bg-gray-50 rounded-lg">
+                                <span class="font-medium theme-text-secondary">{{ bot_name }}</span>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-16 bg-gray-200 rounded-full h-2">
+                                        {% set max_load = system_stats.loads.values() | max if system_stats.loads.values() | max > 0 else 1 %}
+                                        <div class="theme-primary h-2 rounded-full" style="width: {{ (load / max_load * 100) | round }}%"></div>
+                                    </div>
+                                    <span class="text-primary font-semibold text-sm w-8" id="load-{{ loop.index0 }}">{{ load }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center theme-text-secondary py-4">No workload data available</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Database Statistics Section -->
+        <div class="mb-12">
+            <h2 class="text-2xl font-bold mb-6">Database Overview</h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% if system_stats.databases %}
+                    {% for db_stat in system_stats.databases %}
+                    <div class="theme-card rounded-xl p-6 shadow-xl">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold">{{ db_stat.db_name.replace("storage_", "Database ") }}</h3>
+                            <div class="w-8 h-8 theme-primary rounded-lg flex items-center justify-center bg-opacity-20 text-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="white">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <div class="flex justify-between text-sm">
+                                <span class="theme-text-secondary">Movies</span>
+                                <span class="text-primary font-semibold">{{ "{:,}".format(db_stat.movie_count) }}</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="theme-text-secondary">TV Shows</span>
+                                <span class="text-primary font-semibold">{{ "{:,}".format(db_stat.tv_count) }}</span>
+                            </div>
+                            <div class="mt-4">
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span class="theme-text-secondary">Storage Used</span>
+                                    <span class="text-xs">{{ "%.1f"|format(db_stat.storageSize / 1024 / 1024) }} MB</span>
+                                </div>
+                                {% set storage_percent = (db_stat.storageSize / (500 * 1024 * 1024) * 100) | round %}
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="theme-primary h-2 rounded-full" style="width: {{ storage_percent }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-span-full text-center theme-text-secondary py-8">No database statistics available</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Media Management Section -->
+        <div class="mb-12">
+            <h2 class="text-2xl font-bold mb-6">Media Management</h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <a href="/media/manage?media_type=movie" class="block theme-card rounded-xl p-8 shadow-xl hover:shadow-2xl transition-all group">
+                    <div class="flex items-center">
+                        <div class="w-16 h-16 theme-primary rounded-lg flex items-center justify-center mr-6 group-hover:scale-110 transition-transform bg-opacity-20 text-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="white">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2h4a1 1 0 110 2h-1v12a2 2 0 01-2-2V6H3a1 1 0 110-2h4zM9 6v10h6V6H9z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold mb-2">Manage Movies</h3>
+                            <p class="theme-text-secondary">Edit and organize movie collections</p>
+                            <div class="mt-2 text-primary font-semibold text-sm">{{ system_stats.movies|default(0) }} movies</div>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="/media/manage?media_type=tv" class="block theme-card rounded-xl p-8 shadow-xl hover:shadow-2xl transition-all group">
+                    <div class="flex items-center">
+                        <div class="w-16 h-16 theme-primary rounded-lg flex items-center justify-center mr-6 group-hover:scale-110 transition-transform bg-opacity-20 text-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="white">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold mb-2">Manage TV Shows</h3>
+                            <p class="theme-text-secondary">Edit and organize TV series</p>
+                            <div class="mt-2 text-primary font-semibold text-sm">{{ system_stats.tv_shows|default(0) }} shows</div>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="/stremio" class="block theme-card rounded-xl p-8 shadow-xl hover:shadow-2xl transition-all group">
+                    <div class="flex items-center">
+                        <div class="w-16 h-16 theme-primary rounded-lg flex items-center justify-center mr-6 group-hover:scale-110 transition-transform bg-opacity-20 text-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="white">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold mb-2">Stremio Setup</h3>
+                            <p class="theme-text-secondary">Configure addon installation</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Stremio Addon Section -->
+        <div class="theme-card rounded-xl p-8 shadow-xl">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 theme-primary rounded-full flex items-center justify-center mx-auto mb-4 bg-opacity-20 text-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="white">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold mb-2">Stremio Addon</h3>
+                <p class="theme-text-secondary">Install the addon to access media content through Stremio</p>
+            </div>
+
+            <!-- Installation Section -->
+            <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                <h4 class="text-lg font-semibold mb-4">Installation Instructions</h4>
+                <div class="space-y-3 theme-text-secondary">
+                    <div class="flex items-start space-x-3">
+                        <div class="w-6 h-6 theme-primary rounded-full flex items-center justify-center text-white text-sm font-semibold mt-0.5">1</div>
+                        <p>Copy the manifest URL below</p>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <div class="w-6 h-6 theme-primary rounded-full flex items-center justify-center text-white text-sm font-semibold mt-0.5">2</div>
+                        <p>Open Stremio and go to Addons section</p>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <div class="w-6 h-6 theme-primary rounded-full flex items-center justify-center text-white text-sm font-semibold mt-0.5">3</div>
+                        <p>Paste the URL in "Add Addon" field and install</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manifest URL -->
+            <div class="bg-gray-50 rounded-lg p-4">
+                <label class="block text-sm font-medium theme-text-secondary mb-2">Manifest URL</label>
+                <div class="flex">
+                    <input 
+                        type="text" 
+                        value="{{ (request.base_url|string).replace('http:', 'https:') }}stremio/manifest.json" 
+                        readonly 
+                        id="manifest-url"
+                        class="flex-1 theme-card border border-gray-300 rounded-l-lg px-4 py-3 font-mono text-sm focus:outline-none focus:border-primary"
+                    />
+                    <button 
+                        onclick="copyToClipboard()"
+                        class="theme-primary text-white px-6 py-3 rounded-r-lg font-semibold hover:opacity-90 transition-colors duration-200"
+                    >
+                        Copy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+function copyToClipboard() {
+    const manifestUrl = document.getElementById('manifest-url').value;
+    navigator.clipboard.writeText(manifestUrl).then(function() {
+        showToast('Manifest URL copied to clipboard!');
+    });
+}
+
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'fixed top-4 right-4 theme-primary text-white px-6 py-3 rounded-lg shadow-lg z-50 transform transition-all duration-300 translate-x-full';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.classList.remove('translate-x-full'), 100);
+    setTimeout(() => {
+        toast.classList.add('translate-x-full');
+        setTimeout(() => document.body.removeChild(toast), 300);
+    }, 3000);
+}
+
+function toggleAccordion(id) {
+    const content = document.getElementById(id);
+    const icon = document.getElementById(id + '-icon');
+    
+    if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        icon.classList.add('rotate-180');
+    } else {
+        content.classList.add('hidden');
+        icon.classList.remove('rotate-180');
+    }
+}
+</script>
+{% endblock %}
