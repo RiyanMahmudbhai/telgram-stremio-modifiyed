@@ -45,22 +45,45 @@ async def scan_channel(client: Client, message: Message):
                 chat_id = int(channel_id)
                 LOGGER.info(f"Scanning channel: {chat_id}")
                 
-                await status_msg.edit_text(
-                    f"🔍 Scanning channel: `{channel_id}`\n"
-                    f"📊 Limit: {limit} messages\n"
-                    f"⏳ Please wait...",
-                    parse_mode=ParseMode.MARKDOWN
-                )
+                # Get the latest message ID in the channel to determine range
+                try:
+                    # Get the last message to find the latest message ID
+                    last_msg = await client.get_messages(chat_id, 1)
+                    if not last_msg:
+                        LOGGER.warning(f"Could not get messages from channel {chat_id}")
+                        continue
+                    
+                    latest_msg_id = last_msg.id
+                    start_msg_id = max(1, latest_msg_id - limit)
+                    
+                    LOGGER.info(f"Scanning messages from ID {start_msg_id} to {latest_msg_id}")
+                    
+                    await status_msg.edit_text(
+                        f"🔍 Scanning channel: `{channel_id}`\n"
+                        f"📊 Range: {start_msg_id} to {latest_msg_id}\n"
+                        f"⏳ Please wait...",
+                        parse_mode=ParseMode.MARKDOWN
+                    )
+                except Exception as e:
+                    LOGGER.error(f"Failed to get channel messages: {e}")
+                    continue
                 
-                async for msg in client.iter_history(chat_id, limit=limit):
+                # Iterate through message IDs
+                for msg_id in range(start_msg_id, latest_msg_id + 1):
                     try:
+                        # Get message by ID
+                        msg = await client.get_messages(chat_id, msg_id)
+                        
+                        # Skip if message doesn't exist or is not a video
+                        if not msg:
+                            continue
+                            
                         # Check if message has video or document
                         if not (msg.video or (msg.document and msg.document.mime_type and msg.document.mime_type.startswith("video/"))):
                             continue
                         
                         file = msg.video or msg.document
                         title = msg.caption or file.file_name
-                        msg_id = msg.id
                         size = get_readable_file_size(file.file_size)
                         channel = str(chat_id).replace("-100", "")
                         
@@ -107,7 +130,7 @@ async def scan_channel(client: Client, message: Message):
                             )
                         
                         # Small delay to avoid rate limits
-                        await asleep(0.5)
+                        await asleep(0.3)
                         
                     except FloodWait as e:
                         LOGGER.warning(f"FloodWait: {e.value}s")
