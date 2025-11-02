@@ -9,6 +9,7 @@ from Backend.helper.encrypt import decode_string
 from Backend.helper.exceptions import InvalidHash
 from Backend.helper.custom_dl import ByteStreamer
 from Backend.pyrofork.bot import StreamBot, work_loads, multi_clients
+from Backend.logger import LOGGER
 
 router = APIRouter(tags=["Streaming"])
 class_cache = {}
@@ -38,21 +39,52 @@ def parse_range_header(range_header: str, file_size: int) -> Tuple[int, int]:
 @router.get("/dl/{id}/{name}")
 @router.head("/dl/{id}/{name}")
 async def stream_handler(request: Request, id: str, name: str):
-    decoded_data = await decode_string(id)
-    if not decoded_data.get("msg_id"):
-        raise HTTPException(status_code=400, detail="Missing id")
+    try:
+        decoded_data = await decode_string(id)
+        if not decoded_data.get("msg_id"):
+            LOGGER.error(f"Missing msg_id in decoded data: {decoded_data}")
+            raise HTTPException(status_code=400, detail="Missing id")
 
-    chat_id = f"-100{decoded_data['chat_id']}"
-    message = await StreamBot.get_messages(int(chat_id), int(decoded_data["msg_id"]))
-    file = message.video or message.document
-    file_hash = file.file_unique_id[:6]
+        chat_id = f"-100{decoded_data['chat_id']}"
+        msg_id = int(decoded_data["msg_id"])
+        
+        LOGGER.info(f"Fetching message {msg_id} from channel {chat_id}")
+        message = await StreamBot.get_messages(int(chat_id), msg_id)
+        
+        # Check if message exists
+        if not message:
+            LOGGER.error(f"Message {msg_id} not found in channel {chat_id}")
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Message {msg_id} not found in channel {chat_id}"
+            )
+        
+        # Check if file exists in message
+        file = message.video or message.document
+        if not file:
+            LOGGER.error(f"No video or document found in message {msg_id} (channel {chat_id})")
+            raise HTTPException(
+                status_code=404, 
+                detail=f"No video or document found in message {msg_id}"
+            )
+        
+        file_hash = file.file_unique_id[:6]
+        LOGGER.info(f"Streaming file from message {msg_id}: {file.file_name if hasattr(file, 'file_name') else 'unknown'}")
 
-    return await media_streamer(
-        request,
-        chat_id=int(chat_id),
-        id=int(decoded_data["msg_id"]),
-        secure_hash=file_hash
-    )
+        return await media_streamer(
+            request,
+            chat_id=int(chat_id),
+            id=msg_id,
+            secure_hash=file_hash
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        LOGGER.error(f"Error in stream_handler: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error retrieving file: {str(e)}"
+        )
 
 
 async def media_streamer(
