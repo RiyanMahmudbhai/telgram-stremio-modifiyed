@@ -52,79 +52,24 @@ async def scan_channel(client: Client, message: Message):
                     parse_mode=ParseMode.MARKDOWN
                 )
                 
-                # Get multiple messages at once (batch fetch)
+                # Scan messages incrementally from message ID 1 onwards
                 try:
-                    messages_to_scan = []
+                    LOGGER.info(f"Scanning {limit} messages starting from ID 1...")
                     
-                    # Strategy: Search incrementally to find where messages actually exist
-                    # Most channels have messages in lower ID ranges
-                    search_ranges = [
-                        (1, 500),           # Check 1-500
-                        (500, 2000),        # Check 500-2000
-                        (2000, 10000),      # Check 2000-10000
-                        (10000, 50000),     # Check 10000-50000
-                        (50000, 100000),    # Check 50000-100000
-                        (100000, 500000),   # Check 100000-500000
-                        (500000, 1000000),  # Check 500000-1000000
-                    ]
+                    # Scan from message ID 1 to limit
+                    # This ensures we scan the actual messages in the channel
+                    msg_ids_to_scan = list(range(1, limit + 1))
                     
-                    latest_msg_id = None
+                    LOGGER.info(f"Fetching message IDs 1 to {limit}...")
+                    messages_to_scan = await client.get_messages(chat_id, msg_ids_to_scan)
                     
-                    # Find the actual range where messages exist
-                    for start_range, end_range in search_ranges:
-                        try:
-                            # Test the end of this range
-                            test_msg = await client.get_messages(chat_id, end_range)
-                            if test_msg and not isinstance(test_msg, list):
-                                # Found valid messages in this range, keep searching higher
-                                latest_msg_id = test_msg.id
-                                LOGGER.info(f"Found messages up to ID {latest_msg_id} in range {start_range}-{end_range}")
-                                continue
-                            else:
-                                # No message at this ID, means we've gone too high
-                                # Use the previous found latest_msg_id
-                                break
-                        except Exception as e:
-                            # This range doesn't exist, we've gone too high
-                            break
-                    
-                    # If we didn't find any messages, try getting from the beginning
-                    if latest_msg_id is None:
-                        LOGGER.info("Trying to fetch from beginning of channel...")
-                        try:
-                            # Try to get any message from the channel
-                            for test_id in [100, 50, 20, 10, 5, 1]:
-                                test_msg = await client.get_messages(chat_id, test_id)
-                                if test_msg and not isinstance(test_msg, list):
-                                    latest_msg_id = test_id
-                                    break
-                        except Exception:
-                            pass
-                    
-                    if latest_msg_id is None:
-                        LOGGER.warning(f"Could not find any messages in channel {chat_id}")
-                        await status_msg.edit_text(
-                            f"❌ Could not access channel: `{channel_id}`\n"
-                            f"Make sure bot is admin in the channel!",
-                            parse_mode=ParseMode.MARKDOWN
-                        )
-                        continue
-                    
-                    # Now we know the approximate latest message ID
-                    # Scan backwards from there
-                    start_msg_id = max(1, latest_msg_id - limit + 1)
-                    LOGGER.info(f"Found latest message ID: {latest_msg_id}, scanning from {start_msg_id}")
-                    
-                    # Fetch messages in this range
-                    msg_ids = list(range(start_msg_id, latest_msg_id + 1))
-                    messages_to_scan = await client.get_messages(chat_id, msg_ids)
                     if not isinstance(messages_to_scan, list):
                         messages_to_scan = [messages_to_scan]
                     
                     # Filter out None messages
                     messages_to_scan = [msg for msg in messages_to_scan if msg is not None]
                         
-                    LOGGER.info(f"Fetched {len(messages_to_scan)} messages to scan")
+                    LOGGER.info(f"Fetched {len(messages_to_scan)} valid messages to scan")
                     
                     await status_msg.edit_text(
                         f"🔍 Scanning channel: `{channel_id}`\n"
