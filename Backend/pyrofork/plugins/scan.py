@@ -45,34 +45,78 @@ async def scan_channel(client: Client, message: Message):
                 chat_id = int(channel_id)
                 LOGGER.info(f"Scanning channel: {chat_id}")
                 
-                # Get the latest message ID in the channel to determine range
+                await status_msg.edit_text(
+                    f"🔍 Scanning channel: `{channel_id}`\n"
+                    f"📊 Fetching last {limit} messages...\n"
+                    f"⏳ Please wait...",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                
+                # Get multiple messages at once (batch fetch)
+                # get_messages with a list of IDs or negative offset gets recent messages
                 try:
-                    # Get the last message to find the latest message ID
-                    last_msg = await client.get_messages(chat_id, 1)
-                    if not last_msg:
-                        LOGGER.warning(f"Could not get messages from channel {chat_id}")
+                    # Get messages in batches using message IDs list
+                    # We'll fetch messages by iterating backwards from a high message ID
+                    messages_to_scan = []
+                    
+                    # Try to get recent messages by fetching from a high ID downwards
+                    # Start from a very high number and work backwards
+                    test_msg_id = 1000000  # Start from a high number
+                    found_messages = 0
+                    current_batch = []
+                    
+                    # First, try to find the actual latest message
+                    for test_id in range(test_msg_id, 0, -1000):
+                        try:
+                            test_msg = await client.get_messages(chat_id, test_id)
+                            if test_msg and not isinstance(test_msg, list):
+                                # Found a valid message, now scan backwards from here
+                                latest_msg_id = test_msg.id
+                                start_msg_id = max(1, latest_msg_id - limit + 1)
+                                LOGGER.info(f"Found latest message ID: {latest_msg_id}, scanning from {start_msg_id}")
+                                
+                                # Now fetch messages in this range
+                                msg_ids = list(range(start_msg_id, latest_msg_id + 1))
+                                messages_to_scan = await client.get_messages(chat_id, msg_ids)
+                                if not isinstance(messages_to_scan, list):
+                                    messages_to_scan = [messages_to_scan]
+                                break
+                        except Exception:
+                            continue
+                    
+                    if not messages_to_scan:
+                        LOGGER.warning(f"Could not fetch messages from channel {chat_id}")
+                        await status_msg.edit_text(
+                            f"❌ Could not access channel: `{channel_id}`\n"
+                            f"Make sure bot is admin in the channel!",
+                            parse_mode=ParseMode.MARKDOWN
+                        )
                         continue
-                    
-                    latest_msg_id = last_msg.id
-                    start_msg_id = max(1, latest_msg_id - limit)
-                    
-                    LOGGER.info(f"Scanning messages from ID {start_msg_id} to {latest_msg_id}")
+                        
+                    LOGGER.info(f"Fetched {len(messages_to_scan)} messages to scan")
                     
                     await status_msg.edit_text(
                         f"🔍 Scanning channel: `{channel_id}`\n"
-                        f"📊 Range: {start_msg_id} to {latest_msg_id}\n"
-                        f"⏳ Please wait...",
+                        f"📊 Found {len(messages_to_scan)} messages\n"
+                        f"⏳ Processing...",
                         parse_mode=ParseMode.MARKDOWN
                     )
+                    
                 except Exception as e:
                     LOGGER.error(f"Failed to get channel messages: {e}")
+                    await status_msg.edit_text(
+                        f"❌ Error scanning channel: `{channel_id}`\n"
+                        f"Error: {str(e)}",
+                        parse_mode=ParseMode.MARKDOWN
+                    )
                     continue
                 
-                # Iterate through message IDs
-                for msg_id in range(start_msg_id, latest_msg_id + 1):
+                # Process each message
+                for msg in messages_to_scan:
                     try:
-                        # Get message by ID
-                        msg = await client.get_messages(chat_id, msg_id)
+                        # Skip None messages or invalid messages
+                        if not msg:
+                            continue
                         
                         # Skip if message doesn't exist or is not a video
                         if not msg:
@@ -84,6 +128,7 @@ async def scan_channel(client: Client, message: Message):
                         
                         file = msg.video or msg.document
                         title = msg.caption or file.file_name
+                        msg_id = msg.id
                         size = get_readable_file_size(file.file_size)
                         channel = str(chat_id).replace("-100", "")
                         
