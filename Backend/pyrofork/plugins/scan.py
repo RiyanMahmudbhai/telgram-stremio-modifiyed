@@ -52,7 +52,7 @@ async def scan_channel(client: Client, message: Message):
                     parse_mode=ParseMode.MARKDOWN
                 )
                 
-                async for msg in client.get_chat_history(chat_id, limit=limit):
+                async for msg in client.iter_history(chat_id, limit=limit):
                     try:
                         # Check if message has video or document
                         if not (msg.video or (msg.document and msg.document.mime_type and msg.document.mime_type.startswith("video/"))):
