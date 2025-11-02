@@ -62,22 +62,25 @@ The bot only processes **new messages in real-time** by default via `reciever.py
 
 **Command Formats:**
 
-- `/scan` - Scans messages 1-100 (default)
-- `/scan [limit]` - Scans messages 1 to limit
-- `/scan <start> <end>` - Scans messages from start to end (batch scanning)
+- `/scan` - Scans messages 1-100 in all AUTH_CHANNELs (default)
+- `/scan [limit]` - Scans messages 1 to limit in all channels
+- `/scan <start> <end>` - Scans messages from start to end in all channels
+- `/scan <channel_id> <start> <end>` - Scans specific channel only (new!)
 
 **Examples:**
 
-- `/scan 500` - Scans messages 1-500
-- `/scan 100 500` - Scans messages 100-500 (useful for large channels)
-- `/scan 1 3500` - Scans all messages 1-3500 (for channels with 3000+ videos)
+- `/scan 500` - Scans messages 1-500 in all channels
+- `/scan 100 500` - Scans messages 100-500 in all channels
+- `/scan -1003261695898 1 3500` - Scans messages 1-3500 in specific channel only
+- `/scan -1002255696539 1 1000` - Scans different channel independently
 
 **Features:**
 
+- **Channel-specific scanning** - Target individual channels when you have multiple AUTH_CHANNELs
 - Maximum 10,000 messages per scan (prevents timeouts)
 - Checks if files already exist in DB before adding (avoids duplicates)
 - Uses same metadata extraction pipeline as real-time processing
-- Shows progress updates every 10 files
+- Shows progress updates every 10 files and which channel is being scanned
 - Implemented in `Backend/pyrofork/plugins/scan.py`
 
 ## Development Workflows
@@ -135,15 +138,16 @@ print(parsed)  # {'title': 'Ghosted', 'year': 2023, 'resolution': '720p', ...}
 
 ## Bot Commands
 
-| Command               | Description                                                                 | Access     |
-| --------------------- | --------------------------------------------------------------------------- | ---------- |
-| `/start`              | Returns Stremio addon URL for installation                                  | Owner only |
-| `/log`                | Sends latest log file for debugging                                         | Owner only |
-| `/set <imdb_url>`     | Manual upload by linking IMDb URL, then forward files                       | Owner only |
-| `/set`                | Clear default IMDb link                                                     | Owner only |
-| `/restart`            | Restart bot and pull updates from upstream repo                             | Owner only |
-| `/scan [limit]`       | Scan messages 1 to limit (default: 100)                                     | Owner only |
-| `/scan <start> <end>` | Batch scan messages from start to end (e.g., `/scan 100 500` scans 100-500) | Owner only |
+| Command                            | Description                                                      | Access     |
+| ---------------------------------- | ---------------------------------------------------------------- | ---------- |
+| `/start`                           | Returns Stremio addon URL for installation                       | Owner only |
+| `/log`                             | Sends latest log file for debugging                              | Owner only |
+| `/set <imdb_url>`                  | Manual upload by linking IMDb URL, then forward files            | Owner only |
+| `/set`                             | Clear default IMDb link                                          | Owner only |
+| `/restart`                         | Restart bot and pull updates from upstream repo                  | Owner only |
+| `/scan [limit]`                    | Scan messages 1 to limit in all channels (default: 100)          | Owner only |
+| `/scan <start> <end>`              | Batch scan messages from start to end in all channels            | Owner only |
+| `/scan <channel_id> <start> <end>` | Scan specific channel only (e.g., `/scan -1003261695898 1 3500`) | Owner only |
 
 ## Important Gotchas
 

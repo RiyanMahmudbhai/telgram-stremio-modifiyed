@@ -18,16 +18,18 @@ async def scan_channel(client: Client, message: Message):
     """
     Scans AUTH_CHANNEL for existing video files and adds them to the database.
     Usage: 
-        /scan [limit] - Scans messages from 1 to limit
-        /scan <start> <end> - Scans messages from start to end
+        /scan [limit] - Scans messages from 1 to limit in ALL channels
+        /scan <start> <end> - Scans messages from start to end in ALL channels
+        /scan <channel_id> <start> <end> - Scans specific channel only
     Examples: 
-        /scan 100 - Scans messages 1-100
-        /scan 101 500 - Scans messages 101-500
-        /scan 1 3500 - Scans all messages from 1-3500
+        /scan 100 - Scans messages 1-100 in all channels
+        /scan 101 500 - Scans messages 101-500 in all channels
+        /scan -1003261695898 1 3500 - Scans messages 1-3500 in specific channel only
     """
     try:
         # Parse arguments
         args = message.text.split()
+        specific_channel = None
         
         if len(args) == 1:
             # /scan (no arguments) - default to 100
@@ -37,18 +39,43 @@ async def scan_channel(client: Client, message: Message):
             # /scan 100 (single argument) - scan from 1 to limit
             start_id = 1
             end_id = int(args[1])
-        elif len(args) >= 3:
-            # /scan 100 500 (two arguments) - scan from start to end
-            start_id = int(args[1])
-            end_id = int(args[2])
+        elif len(args) == 3:
+            # Could be: /scan 100 500 OR /scan -1003261695898 100
+            # Check if first arg is a channel ID (starts with -)
+            if args[1].startswith('-'):
+                # /scan -1003261695898 500 - specific channel, messages 1 to limit
+                specific_channel = args[1]
+                start_id = 1
+                end_id = int(args[2])
+            else:
+                # /scan 100 500 - all channels, messages 100-500
+                start_id = int(args[1])
+                end_id = int(args[2])
+        elif len(args) >= 4:
+            # /scan -1003261695898 100 500 - specific channel, messages 100-500
+            if args[1].startswith('-'):
+                specific_channel = args[1]
+                start_id = int(args[2])
+                end_id = int(args[3])
+            else:
+                await message.reply_text(
+                    "⚠️ Invalid usage!\n\n"
+                    "**Usage:**\n"
+                    "`/scan` - Scan messages 1-100 in all channels\n"
+                    "`/scan 500` - Scan messages 1-500 in all channels\n"
+                    "`/scan 100 500` - Scan messages 100-500 in all channels\n"
+                    "`/scan -1003261695898 1 3500` - Scan specific channel only",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                return
         else:
             await message.reply_text(
                 "⚠️ Invalid usage!\n\n"
                 "**Usage:**\n"
-                "`/scan` - Scan messages 1-100 (default)\n"
-                "`/scan 500` - Scan messages 1-500\n"
-                "`/scan 100 500` - Scan messages 100-500\n"
-                "`/scan 1 3500` - Scan all messages 1-3500",
+                "`/scan` - Scan messages 1-100 in all channels\n"
+                "`/scan 500` - Scan messages 1-500 in all channels\n"
+                "`/scan 100 500` - Scan messages 100-500 in all channels\n"
+                "`/scan -1003261695898 1 3500` - Scan specific channel only",
                 parse_mode=ParseMode.MARKDOWN
             )
             return
@@ -66,11 +93,27 @@ async def scan_channel(client: Client, message: Message):
             await message.reply_text("⚠️ Range too large! Maximum 10,000 messages per scan.\nTry breaking it into smaller batches.")
             return
         
+        # Validate specific channel if provided
+        if specific_channel and specific_channel not in Telegram.AUTH_CHANNEL:
+            await message.reply_text(
+                f"⚠️ Channel `{specific_channel}` is not in AUTH_CHANNEL list!\n\n"
+                f"**Available channels:**\n" + 
+                "\n".join([f"`{ch}`" for ch in Telegram.AUTH_CHANNEL]),
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+        
         total_range = end_id - start_id + 1
         
+        # Determine which channels to scan
+        channels_to_scan = [specific_channel] if specific_channel else Telegram.AUTH_CHANNEL
+        
+        channel_info = f"specific channel `{specific_channel}`" if specific_channel else f"**{len(channels_to_scan)} channel(s)**"
+        
         status_msg = await message.reply_text(
-            f"🔍 Starting scan of AUTH_CHANNEL...\n"
-            f"📊 Scanning messages {start_id} to {end_id} ({total_range} messages)",
+            f"🔍 Starting scan...\n"
+            f"� Channels: {channel_info}\n"
+            f"📊 Range: messages {start_id} to {end_id} ({total_range} messages)",
             parse_mode=ParseMode.MARKDOWN
         )
         
@@ -79,7 +122,7 @@ async def scan_channel(client: Client, message: Message):
         skipped = 0
         errors = 0
         
-        for channel_id in Telegram.AUTH_CHANNEL:
+        for channel_id in channels_to_scan:
             try:
                 chat_id = int(channel_id)
                 LOGGER.info(f"Scanning channel: {chat_id}")
@@ -206,8 +249,11 @@ async def scan_channel(client: Client, message: Message):
                 continue
         
         # Final status
+        channel_summary = f"Channel: `{specific_channel}`" if specific_channel else f"Channels: {len(channels_to_scan)} scanned"
+        
         await status_msg.edit_text(
             f"✅ **Scan Complete!**\n\n"
+            f"📺 {channel_summary}\n"
             f"📊 Total Processed: {processed}\n"
             f"✅ Added: {added}\n"
             f"⏭️ Skipped (already exist): {skipped}\n"
