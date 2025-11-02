@@ -17,21 +17,60 @@ from Backend import db
 async def scan_channel(client: Client, message: Message):
     """
     Scans AUTH_CHANNEL for existing video files and adds them to the database.
-    Usage: /scan [limit]
-    Example: /scan 100 (scans last 100 messages)
+    Usage: 
+        /scan [limit] - Scans messages from 1 to limit
+        /scan <start> <end> - Scans messages from start to end
+    Examples: 
+        /scan 100 - Scans messages 1-100
+        /scan 101 500 - Scans messages 101-500
+        /scan 1 3500 - Scans all messages from 1-3500
     """
     try:
-        # Parse limit argument
+        # Parse arguments
         args = message.text.split()
-        limit = int(args[1]) if len(args) > 1 else 100
         
-        if limit < 1 or limit > 10000:
-            await message.reply_text("⚠️ Limit must be between 1 and 10000")
+        if len(args) == 1:
+            # /scan (no arguments) - default to 100
+            start_id = 1
+            end_id = 100
+        elif len(args) == 2:
+            # /scan 100 (single argument) - scan from 1 to limit
+            start_id = 1
+            end_id = int(args[1])
+        elif len(args) >= 3:
+            # /scan 100 500 (two arguments) - scan from start to end
+            start_id = int(args[1])
+            end_id = int(args[2])
+        else:
+            await message.reply_text(
+                "⚠️ Invalid usage!\n\n"
+                "**Usage:**\n"
+                "`/scan` - Scan messages 1-100 (default)\n"
+                "`/scan 500` - Scan messages 1-500\n"
+                "`/scan 100 500` - Scan messages 100-500\n"
+                "`/scan 1 3500` - Scan all messages 1-3500",
+                parse_mode=ParseMode.MARKDOWN
+            )
             return
+        
+        # Validate range
+        if start_id < 1:
+            await message.reply_text("⚠️ Start ID must be at least 1")
+            return
+        
+        if end_id < start_id:
+            await message.reply_text("⚠️ End ID must be greater than or equal to Start ID")
+            return
+            
+        if end_id - start_id > 10000:
+            await message.reply_text("⚠️ Range too large! Maximum 10,000 messages per scan.\nTry breaking it into smaller batches.")
+            return
+        
+        total_range = end_id - start_id + 1
         
         status_msg = await message.reply_text(
             f"🔍 Starting scan of AUTH_CHANNEL...\n"
-            f"📊 Scanning last {limit} messages",
+            f"📊 Scanning messages {start_id} to {end_id} ({total_range} messages)",
             parse_mode=ParseMode.MARKDOWN
         )
         
@@ -47,20 +86,20 @@ async def scan_channel(client: Client, message: Message):
                 
                 await status_msg.edit_text(
                     f"🔍 Scanning channel: `{channel_id}`\n"
-                    f"📊 Fetching last {limit} messages...\n"
+                    f"📊 Fetching messages {start_id} to {end_id}...\n"
                     f"⏳ Please wait...",
                     parse_mode=ParseMode.MARKDOWN
                 )
                 
-                # Scan messages incrementally from message ID 1 onwards
+                # Scan messages in the specified range
                 try:
-                    LOGGER.info(f"Scanning {limit} messages starting from ID 1...")
+                    LOGGER.info(f"Scanning {total_range} messages from ID {start_id} to {end_id}...")
                     
-                    # Scan from message ID 1 to limit
+                    # Scan from message ID start_id to end_id
                     # This ensures we scan the actual messages in the channel
-                    msg_ids_to_scan = list(range(1, limit + 1))
+                    msg_ids_to_scan = list(range(start_id, end_id + 1))
                     
-                    LOGGER.info(f"Fetching message IDs 1 to {limit}...")
+                    LOGGER.info(f"Fetching message IDs {start_id} to {end_id}...")
                     messages_to_scan = await client.get_messages(chat_id, msg_ids_to_scan)
                     
                     if not isinstance(messages_to_scan, list):

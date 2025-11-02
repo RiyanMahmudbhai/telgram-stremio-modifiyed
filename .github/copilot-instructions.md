@@ -60,10 +60,24 @@ Users can override automatic parsing by sending `/set <imdb_url>`, which sets `B
 
 The bot only processes **new messages in real-time** by default via `reciever.py`. To detect videos that were already uploaded to `AUTH_CHANNEL` before the bot started:
 
-- Use `/scan [limit]` command (owner only) to retroactively scan channel history
-- Example: `/scan 500` scans last 500 messages
-- Plugin checks if files already exist in DB before adding (avoids duplicates)
+**Command Formats:**
+
+- `/scan` - Scans messages 1-100 (default)
+- `/scan [limit]` - Scans messages 1 to limit
+- `/scan <start> <end>` - Scans messages from start to end (batch scanning)
+
+**Examples:**
+
+- `/scan 500` - Scans messages 1-500
+- `/scan 100 500` - Scans messages 100-500 (useful for large channels)
+- `/scan 1 3500` - Scans all messages 1-3500 (for channels with 3000+ videos)
+
+**Features:**
+
+- Maximum 10,000 messages per scan (prevents timeouts)
+- Checks if files already exist in DB before adding (avoids duplicates)
 - Uses same metadata extraction pipeline as real-time processing
+- Shows progress updates every 10 files
 - Implemented in `Backend/pyrofork/plugins/scan.py`
 
 ## Development Workflows
@@ -121,14 +135,15 @@ print(parsed)  # {'title': 'Ghosted', 'year': 2023, 'resolution': '720p', ...}
 
 ## Bot Commands
 
-| Command           | Description                                                   | Access     |
-| ----------------- | ------------------------------------------------------------- | ---------- |
-| `/start`          | Returns Stremio addon URL for installation                    | Owner only |
-| `/log`            | Sends latest log file for debugging                           | Owner only |
-| `/set <imdb_url>` | Manual upload by linking IMDb URL, then forward files         | Owner only |
-| `/set`            | Clear default IMDb link                                       | Owner only |
-| `/restart`        | Restart bot and pull updates from upstream repo               | Owner only |
-| `/scan [limit]`   | Scan AUTH_CHANNEL for existing videos (default: 100 messages) | Owner only |
+| Command               | Description                                                                 | Access     |
+| --------------------- | --------------------------------------------------------------------------- | ---------- |
+| `/start`              | Returns Stremio addon URL for installation                                  | Owner only |
+| `/log`                | Sends latest log file for debugging                                         | Owner only |
+| `/set <imdb_url>`     | Manual upload by linking IMDb URL, then forward files                       | Owner only |
+| `/set`                | Clear default IMDb link                                                     | Owner only |
+| `/restart`            | Restart bot and pull updates from upstream repo                             | Owner only |
+| `/scan [limit]`       | Scan messages 1 to limit (default: 100)                                     | Owner only |
+| `/scan <start> <end>` | Batch scan messages from start to end (e.g., `/scan 100 500` scans 100-500) | Owner only |
 
 ## Important Gotchas
 
