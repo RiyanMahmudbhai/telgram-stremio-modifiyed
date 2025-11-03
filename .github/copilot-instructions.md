@@ -138,16 +138,56 @@ print(parsed)  # {'title': 'Ghosted', 'year': 2023, 'resolution': '720p', ...}
 
 ## Bot Commands
 
-| Command                            | Description                                                      | Access     |
-| ---------------------------------- | ---------------------------------------------------------------- | ---------- |
-| `/start`                           | Returns Stremio addon URL for installation                       | Owner only |
-| `/log`                             | Sends latest log file for debugging                              | Owner only |
-| `/set <imdb_url>`                  | Manual upload by linking IMDb URL, then forward files            | Owner only |
-| `/set`                             | Clear default IMDb link                                          | Owner only |
-| `/restart`                         | Restart bot and pull updates from upstream repo                  | Owner only |
-| `/scan [limit]`                    | Scan messages 1 to limit in all channels (default: 100)          | Owner only |
-| `/scan <start> <end>`              | Batch scan messages from start to end in all channels            | Owner only |
-| `/scan <channel_id> <start> <end>` | Scan specific channel only (e.g., `/scan -1003261695898 1 3500`) | Owner only |
+| Command                            | Description                                                                   | Access     |
+| ---------------------------------- | ----------------------------------------------------------------------------- | ---------- |
+| `/start`                           | Returns Stremio addon URL for installation                                    | Owner only |
+| `/log`                             | Sends latest log file for debugging                                           | Owner only |
+| `/set <imdb_url>`                  | Manual upload by linking IMDb URL, then forward files                         | Owner only |
+| `/set`                             | Clear default IMDb link                                                       | Owner only |
+| `/restart`                         | Restart bot and pull updates from upstream repo                               | Owner only |
+| `/scan [limit]`                    | Scan messages 1 to limit in all channels (default: 100)                       | Owner only |
+| `/scan <start> <end>`              | Batch scan messages from start to end in all channels                         | Owner only |
+| `/scan <channel_id> <start> <end>` | Scan specific channel only (e.g., `/scan -1003261695898 1 3500`)              | Owner only |
+| `/cleanup [limit]`                 | Check first [limit] broken links in all channels (default: 100)               | Owner only |
+| `/cleanup <channel_id> [limit]`    | Check broken links in specific channel (e.g., `/cleanup -1003261695898 1000`) | Owner only |
+
+## Quality Hierarchy System (New in quality-hierarchy branch)
+
+The Quality Hierarchy System intelligently prevents replacement of high-quality videos with lower-quality versions. See `QUALITY_HIERARCHY.md` for full documentation.
+
+### How It Works
+
+1. **Quality Scoring**: Each video gets a score based on source (BluRay=100, HDCam=25), codec (HEVC=20, H.264=15), audio (DD5.1=80, AAC=50), resolution, and HDR
+2. **Smart Replacement**:
+   - Higher score → Replace ✅
+   - Same score, smaller size → Replace ✅ (prefers HEVC over H.264)
+   - Lower score → Skip ❌ (protects existing quality)
+3. **Backward Compatible**: Different resolutions (720p vs 1080p) still use original logic
+
+### Key Files
+
+- `Backend/helper/quality_checker.py`: Core quality comparison engine
+- `Backend/helper/database.py`: Integrated quality checks in update_movie() and update_tv_show()
+- `QUALITY_HIERARCHY.md`: Complete documentation with examples
+
+### Example Scenarios
+
+```python
+# Scenario 1: Protection (BLOCKS replacement)
+Existing: Movie.2023.1080p.BluRay.DD5.1.mkv (Score: 250)
+New:      Movie.2023.1080p.HDCam.AAC.mkv (Score: 145)
+Result:   ❌ SKIP - Lower quality detected
+
+# Scenario 2: Optimization (ALLOWS replacement)
+Existing: Movie.2023.1080p.BluRay.x264.3.5GB (Score: 265)
+New:      Movie.2023.1080p.BluRay.HEVC.2.1GB (Score: 270)
+Result:   ✅ REPLACE - Better codec, saves 1.4GB
+
+# Scenario 3: Upgrade (ALLOWS replacement)
+Existing: Movie.2023.1080p.HDCam.mkv (Score: 145)
+New:      Movie.2023.1080p.BluRay.mkv (Score: 250)
+Result:   ✅ REPLACE - Better quality
+```
 
 ## Important Gotchas
 

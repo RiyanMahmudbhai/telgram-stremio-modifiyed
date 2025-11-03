@@ -12,6 +12,7 @@ import re
 from Backend.helper.encrypt import decode_string, encode_string
 from Backend.helper.modal import Episode, MovieSchema, QualityDetail, Season, TVShowSchema
 from Backend.helper.task_manager import delete_message
+from Backend.helper.quality_checker import QualityChecker
 
 
 def convert_objectid_to_str(document: Dict[str, Any]) -> Dict[str, Any]:
@@ -277,18 +278,33 @@ class Database:
         existing_qualities = existing_movie.get("telegram", [])
         matching_quality = next((q for q in existing_qualities if q["quality"] == target_quality), None)
         if matching_quality:
+            # Use Quality Hierarchy System to determine if we should replace
+            should_replace, reason = QualityChecker.should_replace_quality(
+                existing_quality_label=matching_quality.get("quality", ""),
+                existing_quality_name=matching_quality.get("name", ""),
+                existing_quality_size=matching_quality.get("size", ""),
+                new_quality_label=quality_to_update.get("quality", ""),
+                new_quality_name=quality_to_update.get("name", ""),
+                new_quality_size=quality_to_update.get("size", "")
+            )
             
-            try:
-                old_id = matching_quality.get("id")
-                if old_id:
-                    decoded_data = await decode_string(old_id)
-                    chat_id = int(f"-100{decoded_data['chat_id']}")
-                    msg_id = int(decoded_data['msg_id'])
-                    create_task(delete_message(chat_id, msg_id))
-            except Exception as e:
-                LOGGER.error(f"Failed to queue old quality file for deletion: {e}")
+            if should_replace:
+                LOGGER.info(f"Quality replacement approved: {reason}")
+                try:
+                    old_id = matching_quality.get("id")
+                    if old_id:
+                        decoded_data = await decode_string(old_id)
+                        chat_id = int(f"-100{decoded_data['chat_id']}")
+                        msg_id = int(decoded_data['msg_id'])
+                        create_task(delete_message(chat_id, msg_id))
+                except Exception as e:
+                    LOGGER.error(f"Failed to queue old quality file for deletion: {e}")
 
-            matching_quality.update(quality_to_update)
+                matching_quality.update(quality_to_update)
+            else:
+                LOGGER.warning(f"Quality replacement blocked: {reason}")
+                # Don't replace - skip this update
+                return movie_id
         else:
             existing_qualities.append(quality_to_update)
         existing_movie["telegram"] = existing_qualities
@@ -371,19 +387,35 @@ class Database:
                                 None
                             )
                             if existing_quality:
-                                try:
-                                    old_id = existing_quality.get("id")
+                                # Use Quality Hierarchy System to determine if we should replace
+                                should_replace, reason = QualityChecker.should_replace_quality(
+                                    existing_quality_label=existing_quality.get("quality", ""),
+                                    existing_quality_name=existing_quality.get("name", ""),
+                                    existing_quality_size=existing_quality.get("size", ""),
+                                    new_quality_label=quality.get("quality", ""),
+                                    new_quality_name=quality.get("name", ""),
+                                    new_quality_size=quality.get("size", "")
+                                )
+                                
+                                if should_replace:
+                                    LOGGER.info(f"TV quality replacement approved: {reason}")
+                                    try:
+                                        old_id = existing_quality.get("id")
 
-                                    if old_id:
-                                        decoded_data = await decode_string(old_id)
+                                        if old_id:
+                                            decoded_data = await decode_string(old_id)
 
-                                        chat_id = int(f"-100{decoded_data['chat_id']}")
-                                        msg_id = int(decoded_data['msg_id'])
-                                        create_task(delete_message(chat_id, msg_id))
-                                        
-                                except Exception as e:
-                                    LOGGER.error(f"Failed to queue old quality file for deletion: {e}")
-                                existing_quality.update(quality)
+                                            chat_id = int(f"-100{decoded_data['chat_id']}")
+                                            msg_id = int(decoded_data['msg_id'])
+                                            create_task(delete_message(chat_id, msg_id))
+                                            
+                                    except Exception as e:
+                                        LOGGER.error(f"Failed to queue old quality file for deletion: {e}")
+                                    existing_quality.update(quality)
+                                else:
+                                    LOGGER.warning(f"TV quality replacement blocked: {reason}")
+                                    # Don't replace - skip this quality
+                                    continue
                             else:
                                 existing_episode["telegram"].append(quality)
                     else:
