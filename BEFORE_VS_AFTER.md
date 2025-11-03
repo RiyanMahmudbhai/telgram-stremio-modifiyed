@@ -23,6 +23,7 @@ Result: 😢 Lost your high-quality BluRay version!
 ```
 
 ### What Was Wrong
+
 ```python
 # Old Logic in database.py (line ~295)
 if matching_quality:
@@ -32,8 +33,9 @@ if matching_quality:
 ```
 
 ### Real-World Impact
+
 - ✅ Upload: BluRay DD5.1 3.0GB
-- ❌ Upload: HDCam AAC 1.5GB → **Replaced BluRay** 
+- ❌ Upload: HDCam AAC 1.5GB → **Replaced BluRay**
 - 😢 Result: Stuck with terrible quality!
 
 ---
@@ -57,6 +59,7 @@ Result: 🎉 High-quality BluRay PROTECTED!
 ```
 
 ### What's Fixed
+
 ```python
 # New Logic in database.py (line ~278-310)
 if matching_quality:
@@ -69,7 +72,7 @@ if matching_quality:
         new_quality_name=quality_to_update.get("name"),
         new_quality_size=quality_to_update.get("size")
     )
-    
+
     if should_replace:  # ← Only if BETTER quality!
         LOGGER.info(f"✅ Replacement approved: {reason}")
         matching_quality.update(quality_to_update)
@@ -80,6 +83,7 @@ if matching_quality:
 ```
 
 ### Real-World Impact
+
 - ✅ Upload: BluRay DD5.1 3.0GB → Stored
 - ❌ Upload: HDCam AAC 1.5GB → **BLOCKED** ✅
 - 🎉 Result: Keep your high quality!
@@ -88,14 +92,14 @@ if matching_quality:
 
 ## 📊 Side-by-Side Comparison
 
-| Scenario | Before (Old) | After (Quality Hierarchy) |
-|----------|-------------|--------------------------|
-| **BluRay → HDCam** | ❌ Replaces (Lost quality!) | ✅ Blocks (Protected!) |
-| **HDCam → BluRay** | ✅ Replaces | ✅ Replaces (Upgrade!) |
-| **BluRay x264 3.5GB → BluRay HEVC 2.1GB** | ✅ Replaces | ✅ Replaces (Better codec!) |
-| **BluRay HEVC 2.1GB → BluRay x264 3.5GB** | ✅ Replaces | ❌ Blocks (Worse codec + larger!) |
-| **WEB-DL → WEBRip** | ❌ Replaces | ✅ Blocks (WEB-DL better!) |
-| **720p → 1080p** | ✅ Replaces | ✅ Replaces (Original logic) |
+| Scenario                                  | Before (Old)                | After (Quality Hierarchy)         |
+| ----------------------------------------- | --------------------------- | --------------------------------- |
+| **BluRay → HDCam**                        | ❌ Replaces (Lost quality!) | ✅ Blocks (Protected!)            |
+| **HDCam → BluRay**                        | ✅ Replaces                 | ✅ Replaces (Upgrade!)            |
+| **BluRay x264 3.5GB → BluRay HEVC 2.1GB** | ✅ Replaces                 | ✅ Replaces (Better codec!)       |
+| **BluRay HEVC 2.1GB → BluRay x264 3.5GB** | ✅ Replaces                 | ❌ Blocks (Worse codec + larger!) |
+| **WEB-DL → WEBRip**                       | ❌ Replaces                 | ✅ Blocks (WEB-DL better!)        |
+| **720p → 1080p**                          | ✅ Replaces                 | ✅ Replaces (Original logic)      |
 
 ---
 
@@ -104,6 +108,7 @@ if matching_quality:
 ### Scenario from Your Screenshots
 
 Looking at your torrent screenshots, I saw dozens of Avengers Endgame versions:
+
 - BluRay 1080p with DD5.1
 - WEB-DL with multiple audio tracks
 - HDCam versions
@@ -150,6 +155,7 @@ Timeline of Uploads:
 ### Example 1: BluRay vs HDCam
 
 **File 1**: `Avengers.Endgame.2019.1080p.BluRay.DD5.1.x265.10bit.mkv`
+
 ```
 Source:     bluray  → +100
 Codec:      x265    → +20
@@ -161,6 +167,7 @@ TOTAL SCORE:         275
 ```
 
 **File 2**: `Avengers.Endgame.2019.1080p.HDCam.AAC.2.0.mkv`
+
 ```
 Source:     hdcam   → +25
 Codec:      none    → +0
@@ -178,6 +185,7 @@ TOTAL SCORE:         145
 ### Example 2: x264 vs HEVC (Same Quality)
 
 **File 1**: `Movie.2023.1080p.BluRay.x264.DD5.1.mkv` (3.5GB)
+
 ```
 Source:     bluray  → +100
 Codec:      x264    → +15
@@ -188,6 +196,7 @@ TOTAL SCORE:         265
 ```
 
 **File 2**: `Movie.2023.1080p.BluRay.x265.DD5.1.mkv` (2.1GB)
+
 ```
 Source:     bluray  → +100
 Codec:      x265    → +20  ← Better codec!
@@ -248,31 +257,37 @@ Worst Quality
 ## 🎯 Your Specific Request - Fulfilled
 
 ### ✅ Requirement 1: Quality Hierarchy System
+
 - **Status**: ✅ Fully Implemented
 - **Details**: Comprehensive scoring with source, codec, audio, resolution, HDR
 - **File**: `Backend/helper/quality_checker.py`
 
 ### ✅ Requirement 2: Same Quality, Prefer Smaller Size
+
 - **Status**: ✅ Fully Implemented
 - **Example**: BluRay x264 3.5GB → BluRay HEVC 2.1GB ✅ Replaces
 - **Logic**: When scores equal, prefers smaller file
 
 ### ✅ Requirement 3: Keep Resolution Matching
+
 - **Status**: ✅ Fully Implemented
 - **Details**: 1080p vs 1080p uses quality hierarchy
 - **Details**: 720p vs 1080p uses original logic (backward compatible)
 
 ### ✅ Requirement 4: New Branch
+
 - **Status**: ✅ Created
 - **Branch Name**: `quality-hierarchy`
 - **Reason**: Massive improvement, non-breaking
 
 ### ✅ Requirement 5: Real-World Quality Check
+
 - **Status**: ✅ Implemented
 - **Based On**: Your Avengers Endgame torrent screenshots
 - **Tested**: All real-world scenarios from screenshots
 
 ### ✅ Requirement 6: Expert Implementation
+
 - **Status**: ✅ Professional Grade
 - **Includes**: Tests, documentation, logging, error handling
 - **Quality**: Production-ready with 100% test coverage
@@ -282,6 +297,7 @@ Worst Quality
 ## 📝 Log Comparison
 
 ### Before Implementation
+
 ```
 [INFO] Found existing movie with ID: 690892359833fb06188ded82
 [INFO] movie updated with ID: 690892359833fb06188ded82
@@ -289,6 +305,7 @@ Worst Quality
 ```
 
 ### After Implementation (Blocked)
+
 ```
 [INFO] Quality Comparison:
   Existing: Avengers.Endgame.2019.1080p.BluRay.DD5.1.x265.10bit.mkv
@@ -302,6 +319,7 @@ Worst Quality
 ```
 
 ### After Implementation (Allowed - Size Optimization)
+
 ```
 [INFO] Quality Comparison:
   Existing: Movie.2023.1080p.BluRay.x264.DD5.1.mkv
@@ -320,10 +338,12 @@ Worst Quality
 ## 🎉 Summary
 
 ### What Changed
+
 - ❌ **Before**: Blind replacement based only on resolution label
 - ✅ **After**: Intelligent quality comparison with comprehensive scoring
 
 ### What's Protected Now
+
 - ✅ BluRay from any lower quality
 - ✅ WEB-DL from WEBRip
 - ✅ DD5.1 audio from AAC
@@ -331,11 +351,13 @@ Worst Quality
 - ✅ 10-bit from 8-bit
 
 ### What's Optimized Now
+
 - ✅ Same quality, smaller files replace larger ones
 - ✅ Better codecs (HEVC) replace older ones (x264)
 - ✅ Better audio replaces worse audio
 
 ### Backward Compatibility
+
 - ✅ Different resolutions (720p vs 1080p) use original logic
 - ✅ No breaking changes to existing functionality
 - ✅ All existing features work exactly as before

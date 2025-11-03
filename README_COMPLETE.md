@@ -11,10 +11,12 @@ Successfully implemented **Quality Hierarchy System** as an expert-level feature
 ### 10 Files Total (2 Modified + 8 Created)
 
 #### Modified Files (2)
+
 1. ✅ `Backend/helper/database.py` - Integrated quality comparison
 2. ✅ `.github/copilot-instructions.md` - Updated documentation
 
 #### New Files (8)
+
 3. ✅ `Backend/helper/quality_checker.py` - Core quality engine (413 lines)
 4. ✅ `Backend/tests/test_quality_checker.py` - pytest test suite (185 lines)
 5. ✅ `test_quality_standalone.py` - Standalone tests (317 lines)
@@ -31,23 +33,28 @@ Successfully implemented **Quality Hierarchy System** as an expert-level feature
 ## 🚀 Quick Start - 3 Steps
 
 ### Step 1: Test It (No Dependencies)
+
 ```bash
 cd "e:\New folder (5)\telgram-stremio-modifiyed"
 python test_quality_standalone.py
 ```
 
 Expected output:
+
 ```
 FINAL RESULTS: 6 PASSED, 0 FAILED
 ```
 
 ### Step 2: Review Implementation
+
 Check any of these files:
+
 - `BEFORE_VS_AFTER.md` - See the problem & solution
 - `IMPLEMENTATION_SUMMARY.md` - Technical details
 - `QUALITY_HIERARCHY.md` - Complete feature guide
 
 ### Step 3: Deploy
+
 ```bash
 # Option A: Docker
 docker compose up -d --build
@@ -61,10 +68,13 @@ uv run -m Backend
 ## 🎯 What Problem This Solves
 
 ### Your Reported Issue
+
 "If my AUTH_CHANNEL already has a good quality movie like BluRay with DD5.1, then by mistake I forward the same movie in low quality like HDCam, the bot replaces the previous good quality movie and stores this low quality movie."
 
 ### The Solution
+
 ✅ **Quality Hierarchy System** now prevents this completely:
+
 - BluRay files are **protected** from HDCam/Cam/TS replacements
 - WEB-DL files are **protected** from WEBRip
 - DD5.1 audio is **protected** from AAC 2.0
@@ -133,12 +143,14 @@ FINAL RESULTS: 6 PASSED, 0 FAILED
 ## 📝 Real-World Examples
 
 ### Example 1: Protection (Your Scenario)
+
 ```
 Before: ❌ BluRay replaced by HDCam
 After:  ✅ HDCam blocked, BluRay protected
 ```
 
 ### Example 2: Optimization
+
 ```
 Upload 1: Movie.2023.1080p.BluRay.x264.3.5GB
 Upload 2: Movie.2023.1080p.BluRay.HEVC.2.1GB
@@ -146,6 +158,7 @@ Result:   ✅ Replaced (Better codec, saves 1.4GB!)
 ```
 
 ### Example 3: Upgrade
+
 ```
 Upload 1: Movie.2023.1080p.HDCam.mkv
 Upload 2: Movie.2023.1080p.WEBRip.mkv
@@ -158,19 +171,20 @@ Result:   ✅ Each upload upgrades quality progressively
 
 ## 📚 Documentation Guide
 
-| Document | Purpose | Read When |
-|----------|---------|-----------|
-| `README_COMPLETE.md` | Quick overview (this file) | Start here |
-| `BEFORE_VS_AFTER.md` | Visual comparison | Want to see the difference |
-| `IMPLEMENTATION_SUMMARY.md` | Technical details | Want implementation info |
-| `QUALITY_HIERARCHY.md` | Complete feature guide | Want all details |
-| `quality-hierarchy-README.md` | Branch-specific info | Deploying this branch |
+| Document                      | Purpose                    | Read When                  |
+| ----------------------------- | -------------------------- | -------------------------- |
+| `README_COMPLETE.md`          | Quick overview (this file) | Start here                 |
+| `BEFORE_VS_AFTER.md`          | Visual comparison          | Want to see the difference |
+| `IMPLEMENTATION_SUMMARY.md`   | Technical details          | Want implementation info   |
+| `QUALITY_HIERARCHY.md`        | Complete feature guide     | Want all details           |
+| `quality-hierarchy-README.md` | Branch-specific info       | Deploying this branch      |
 
 ---
 
 ## 🔧 Technical Highlights
 
 ### Architecture
+
 ```
 User forwards video
        ↓
@@ -188,8 +202,9 @@ Update database or reject
 ```
 
 ### Quality Scoring
+
 ```python
-Total Score = 
+Total Score =
     Source Score (5-100) +      # BluRay, WEB-DL, HDCam, etc.
     Codec Score (3-20) +        # HEVC, H.264, AV1, etc.
     Audio Score (20-100) +      # Atmos, DD5.1, AAC, etc.
@@ -199,6 +214,7 @@ Total Score =
 ```
 
 ### Example Calculation
+
 ```
 File: Avengers.Endgame.2019.1080p.BluRay.x265.10bit.DD5.1.mkv
 
@@ -217,9 +233,11 @@ TOTAL:                 275 points
 ## ⚙️ Configuration
 
 ### Zero Configuration Required!
+
 Works out of the box with sensible defaults.
 
 ### Optional Customization
+
 Edit `Backend/helper/quality_checker.py` to customize rankings:
 
 ```python
@@ -236,17 +254,22 @@ SOURCE_RANKINGS = {
 ## 🐛 Troubleshooting
 
 ### Problem: Files Still Being Replaced
+
 **Check**: Are resolutions different?
+
 - 720p vs 1080p → Uses original logic (always replaces)
 - 1080p vs 1080p → Uses quality hierarchy (smart comparison)
 
 ### Problem: Quality Not Detected
+
 **Check**: Does filename have quality indicators?
+
 - Needs: Source (BluRay, WEB-DL) OR codec (HEVC, x264)
 - Example: "Movie.2023.1080p.mkv" (no source) → Limited detection
 - Example: "Movie.2023.1080p.BluRay.mkv" → Full detection
 
 ### Problem: Want to See Logs
+
 ```bash
 # Docker
 docker compose logs -f | grep "Quality"
@@ -260,36 +283,40 @@ tail -f log.txt | grep "Quality"
 ## 📊 Quality Rankings Quick Reference
 
 ### Video Sources (Higher = Better)
-| Source | Score | Quality Level |
-|--------|-------|---------------|
-| BluRay, UHD, 4K | 100 | 🥇 Best |
-| WEB-DL | 85 | 🥈 Excellent |
-| WEBRip | 75 | 🥉 Very Good |
-| DVDRip | 60 | 📀 Good |
-| HDTV | 50 | 📺 Decent |
-| HDCam | 25 | 📷 Poor |
-| Cam, TS | 15 | 📹 Worst |
+
+| Source          | Score | Quality Level |
+| --------------- | ----- | ------------- |
+| BluRay, UHD, 4K | 100   | 🥇 Best       |
+| WEB-DL          | 85    | 🥈 Excellent  |
+| WEBRip          | 75    | 🥉 Very Good  |
+| DVDRip          | 60    | 📀 Good       |
+| HDTV            | 50    | 📺 Decent     |
+| HDCam           | 25    | 📷 Poor       |
+| Cam, TS         | 15    | 📹 Worst      |
 
 ### Audio Formats
-| Format | Score | Quality |
-|--------|-------|---------|
-| Atmos, TrueHD | 95-100 | 🔊 Best |
-| DTS-HD | 95 | 🔉 Lossless |
-| DD5.1 | 80 | 🔉 Surround |
-| AAC 2.0 | 50 | 🔈 Stereo |
+
+| Format        | Score  | Quality     |
+| ------------- | ------ | ----------- |
+| Atmos, TrueHD | 95-100 | 🔊 Best     |
+| DTS-HD        | 95     | 🔉 Lossless |
+| DD5.1         | 80     | 🔉 Surround |
+| AAC 2.0       | 50     | 🔈 Stereo   |
 
 ### Video Codecs
-| Codec | Score | Efficiency |
-|-------|-------|------------|
-| HEVC/x265 | 20 | ⚡ Best compression |
-| AV1 | 18 | ⚡ Modern |
-| H.264/x264 | 15 | ✅ Standard |
+
+| Codec      | Score | Efficiency          |
+| ---------- | ----- | ------------------- |
+| HEVC/x265  | 20    | ⚡ Best compression |
+| AV1        | 18    | ⚡ Modern           |
+| H.264/x264 | 15    | ✅ Standard         |
 
 ---
 
 ## 🔮 Future Enhancements (Not Implemented)
 
 Ideas for future versions:
+
 1. `/force` command - Manual override of quality checks
 2. Bot notifications - Alert when replacement blocked
 3. Quality dashboard - Statistics and distribution
@@ -301,6 +328,7 @@ Ideas for future versions:
 ## 🎓 For Developers
 
 ### Running Tests
+
 ```bash
 # Standalone (no dependencies)
 python test_quality_standalone.py
@@ -310,6 +338,7 @@ uv run python -m pytest Backend/tests/test_quality_checker.py -v
 ```
 
 ### Adding New Quality Sources
+
 ```python
 # In Backend/helper/quality_checker.py
 SOURCE_RANKINGS = {
@@ -321,6 +350,7 @@ SOURCE_RANKINGS = {
 ```
 
 ### Understanding the Code
+
 ```python
 # Main entry point
 QualityChecker.should_replace_quality(
@@ -339,6 +369,7 @@ QualityChecker.should_replace_quality(
 ## 📞 Support & Help
 
 ### Check Implementation Status
+
 ```bash
 cd "e:\New folder (5)\telgram-stremio-modifiyed"
 git branch  # Should show "* quality-hierarchy"
@@ -346,6 +377,7 @@ git log --oneline -3  # Show recent commits
 ```
 
 ### Verify Files Exist
+
 ```bash
 ls Backend/helper/quality_checker.py        # Core engine
 ls Backend/tests/test_quality_checker.py    # Tests
@@ -353,7 +385,9 @@ ls QUALITY_HIERARCHY.md                      # Documentation
 ```
 
 ### Debug Quality Comparison
+
 Look for these log entries:
+
 ```
 [INFO] Quality Comparison:
   Existing: [filename]
@@ -383,6 +417,7 @@ Look for these log entries:
 ## 🎉 Ready to Deploy!
 
 ### Deployment Commands
+
 ```bash
 # 1. Ensure you're on the quality-hierarchy branch
 git checkout quality-hierarchy
@@ -402,6 +437,7 @@ docker compose logs -f
 ```
 
 ### Expected Results After Deployment
+
 - ✅ BluRay files protected from HDCam
 - ✅ WEB-DL files protected from WEBRip
 - ✅ DD5.1 audio protected from AAC
@@ -445,7 +481,7 @@ Your problem is **completely solved**. The Quality Hierarchy System will:
 ✅ Optimize storage by preferring smaller files when quality is equal  
 ✅ Allow quality upgrades when you upload better versions  
 ✅ Work transparently with detailed logging  
-✅ Maintain backward compatibility with existing features  
+✅ Maintain backward compatibility with existing features
 
 **Enjoy your quality-protected media library!** 🍿
 
@@ -455,7 +491,7 @@ Your problem is **completely solved**. The Quality Hierarchy System will:
 **Status**: ✅ Complete & Production Ready  
 **Commits**: 3 (feat, docs x2)  
 **Tests**: ✅ All Passing (6/6)  
-**Deployment**: 🚀 Ready  
+**Deployment**: 🚀 Ready
 
 **Implementation Date**: November 3, 2025  
 **Implemented By**: Expert AI Agent  
