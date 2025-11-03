@@ -155,6 +155,20 @@ class QualityChecker:
         if result['is_10bit']:
             result['bitrate_bonus'] = 5
         
+        # Default audio assumption for high-quality sources without explicit audio info
+        # This prevents WEB-DL/BluRay from losing to lower sources just because audio isn't in filename
+        if result['audio_score'] == 0:
+            # High-quality sources typically have at least DD5.1 or better
+            if result['source'] in ['bluray', 'blu-ray', 'brrip', 'bdrip', 'uhd', '4k']:
+                result['audio'] = 'assumed-dd5.1'
+                result['audio_score'] = 80  # Assume standard DD5.1 for BluRay
+            elif result['source'] in ['web-dl', 'webdl', 'web dl', 'dsnp', 'nf', 'amzn']:
+                result['audio'] = 'assumed-ddp'
+                result['audio_score'] = 85  # Streaming platforms typically use DD+ (EAC3)
+            elif result['source'] in ['webrip', 'web-rip']:
+                result['audio'] = 'assumed-stereo'
+                result['audio_score'] = 45  # Conservative assumption for WEBRip
+        
         return result
     
     @staticmethod

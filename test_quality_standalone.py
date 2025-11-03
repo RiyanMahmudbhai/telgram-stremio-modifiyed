@@ -110,6 +110,18 @@ class QualityChecker:
         if result['is_10bit']:
             result['bitrate_bonus'] = 5
         
+        # Default audio assumption for high-quality sources without explicit audio info
+        if result['audio_score'] == 0:
+            if result['source'] in ['bluray', 'blu-ray', 'brrip', 'bdrip', 'uhd', '4k']:
+                result['audio'] = 'assumed-dd5.1'
+                result['audio_score'] = 80
+            elif result['source'] in ['web-dl', 'webdl', 'web dl', 'dsnp', 'nf', 'amzn']:
+                result['audio'] = 'assumed-ddp'
+                result['audio_score'] = 85
+            elif result['source'] in ['webrip', 'web-rip']:
+                result['audio'] = 'assumed-stereo'
+                result['audio_score'] = 45
+        
         return result
     
     @staticmethod
@@ -227,6 +239,13 @@ def run_tests():
             'new': ('Avengers.Endgame.2019.1080p.HDCam.AAC.2.0.mkv', '2.1GB'),
             'expected': False,
             'reason': 'Must protect high-quality BluRay from HDCam replacement'
+        },
+        {
+            'name': 'Real-world: WEBRip DDP5.1 vs WEB-DL (no audio in filename)',
+            'existing': ('Mission.Impossible.The.Final.Reckoning.2025.1080p.WEBRip.DDP5.1.x265-NeoNoir.mkv', '2.80GB'),
+            'new': ('Mission Impossible The Final Reckoning 2025 IMAX 1080p WEB-DL HEVC x265-RMTeam.mkv', '2.87GB'),
+            'expected': True,
+            'reason': 'WEB-DL should replace WEBRip even without explicit audio (assumes DD5.1)'
         },
     ]
     
