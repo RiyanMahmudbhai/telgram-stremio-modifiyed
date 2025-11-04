@@ -14,12 +14,13 @@ class QualityChecker:
     SOURCE_RANKINGS = {
         'bluray': 100, 'blu-ray': 100, 'brrip': 100, 'bdrip': 100,
         'uhd': 100, '4k': 100,
-        'web-dl': 85, 'webdl': 85, 'web dl': 85,
-        'webrip': 75, 'web-rip': 75,
+        'web-dl': 85, 'webdl': 85, 'web dl': 85, 'web.dl': 85,
+        'webrip': 75, 'web-rip': 75, 'web.rip': 75,
+        'dsnp': 85, 'nf': 85, 'amzn': 85,
+        'atvp': 85, 'aptv': 85, 'hmax': 85, 'hbo': 85,
         'dvdrip': 60, 'dvd-rip': 60,
         'hdrip': 55, 'hd-rip': 55,
         'hdtv': 50, 'hdtvrip': 50,
-        'dsnp': 70, 'nf': 70, 'amzn': 70,
         'dvdscr': 40, 'screener': 40,
         'r5': 35,
         'hdcam': 25, 'hd-cam': 25, 'hdts': 25, 'hd-ts': 25,
@@ -115,10 +116,10 @@ class QualityChecker:
             if result['source'] in ['bluray', 'blu-ray', 'brrip', 'bdrip', 'uhd', '4k']:
                 result['audio'] = 'assumed-dd5.1'
                 result['audio_score'] = 80
-            elif result['source'] in ['web-dl', 'webdl', 'web dl', 'dsnp', 'nf', 'amzn']:
+            elif result['source'] in ['web-dl', 'webdl', 'web dl', 'web.dl', 'dsnp', 'nf', 'amzn', 'atvp', 'aptv', 'hmax', 'hbo']:
                 result['audio'] = 'assumed-ddp'
                 result['audio_score'] = 85
-            elif result['source'] in ['webrip', 'web-rip']:
+            elif result['source'] in ['webrip', 'web-rip', 'web.rip']:
                 result['audio'] = 'assumed-stereo'
                 result['audio_score'] = 45
         
@@ -246,6 +247,20 @@ def run_tests():
             'new': ('Mission Impossible The Final Reckoning 2025 IMAX 1080p WEB-DL HEVC x265-RMTeam.mkv', '2.87GB'),
             'expected': True,
             'reason': 'WEB-DL should replace WEBRip even without explicit audio (assumes DD5.1)'
+        },
+        {
+            'name': 'Real-world: WEB-DL vs AMZN WEB-DL (dot separator)',
+            'existing': ('The.Conjuring.Last.Rites.2025.WebDl.Rip.1080p.H265.AC3.mkv', '2.35GB'),
+            'new': ('The.Conjuring.Last.Rites.2025.1080p.HEVC.AMZN.WEB.DL.Multi.H.265.mkv', '3.25GB'),
+            'expected': True,
+            'reason': 'AMZN WEB.DL (with dots) should be detected and replace WebDl Rip'
+        },
+        {
+            'name': 'Real-world: WEBRip vs web.dl (lowercase with dots)',
+            'existing': ('Dangerous.Animals.2025.1080p.WEBRip.DDP5.1.x265-NeoNoir.mkv', '1.62GB'),
+            'new': ('dangerous.animals.2025.1080p.web.dl.hevc.x265.rmteam.mkv', '1.20GB'),
+            'expected': True,
+            'reason': 'web.dl (lowercase with dots) should be detected as WEB-DL and replace WEBRip'
         },
     ]
     

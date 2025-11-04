@@ -21,8 +21,13 @@ class QualityChecker:
         'uhd': 100, '4k': 100,
         
         # Excellent Quality
-        'web-dl': 85, 'webdl': 85, 'web dl': 85,
-        'webrip': 75, 'web-rip': 75,
+        'web-dl': 85, 'webdl': 85, 'web dl': 85, 'web.dl': 85,  # Added dot variant
+        'webrip': 75, 'web-rip': 75, 'web.rip': 75,  # Added dot variant
+        
+        # Streaming Platform WEB-DLs (same quality as generic WEB-DL)
+        'dsnp': 85, 'nf': 85, 'amzn': 85,  # Disney+, Netflix, Amazon (all WEB-DL quality)
+        'atvp': 85, 'aptv': 85,  # Apple TV+
+        'hmax': 85, 'hbo': 85,  # HBO Max
         
         # Good Quality  
         'dvdrip': 60, 'dvd-rip': 60,
@@ -30,7 +35,6 @@ class QualityChecker:
         
         # Decent Quality
         'hdtv': 50, 'hdtvrip': 50,
-        'dsnp': 70, 'nf': 70, 'amzn': 70,  # Streaming platforms
         
         # Lower Quality
         'dvdscr': 40, 'screener': 40,
@@ -162,10 +166,10 @@ class QualityChecker:
             if result['source'] in ['bluray', 'blu-ray', 'brrip', 'bdrip', 'uhd', '4k']:
                 result['audio'] = 'assumed-dd5.1'
                 result['audio_score'] = 80  # Assume standard DD5.1 for BluRay
-            elif result['source'] in ['web-dl', 'webdl', 'web dl', 'dsnp', 'nf', 'amzn']:
+            elif result['source'] in ['web-dl', 'webdl', 'web dl', 'web.dl', 'dsnp', 'nf', 'amzn', 'atvp', 'aptv', 'hmax', 'hbo']:
                 result['audio'] = 'assumed-ddp'
                 result['audio_score'] = 85  # Streaming platforms typically use DD+ (EAC3)
-            elif result['source'] in ['webrip', 'web-rip']:
+            elif result['source'] in ['webrip', 'web-rip', 'web.rip']:
                 result['audio'] = 'assumed-stereo'
                 result['audio_score'] = 45  # Conservative assumption for WEBRip
         
