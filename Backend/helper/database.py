@@ -300,7 +300,16 @@ class Database:
                 except Exception as e:
                     LOGGER.error(f"Failed to queue old quality file for deletion: {e}")
 
+                # Log the update for debugging
+                LOGGER.info(f"Updating quality entry:")
+                LOGGER.info(f"  Old ID: {matching_quality.get('id', 'N/A')}")
+                LOGGER.info(f"  New ID: {quality_to_update.get('id', 'N/A')}")
+                LOGGER.info(f"  Old Name: {matching_quality.get('name', 'N/A')}")
+                LOGGER.info(f"  New Name: {quality_to_update.get('name', 'N/A')}")
+                
                 matching_quality.update(quality_to_update)
+                
+                LOGGER.info(f"After update - ID: {matching_quality.get('id', 'N/A')}")
             else:
                 LOGGER.warning(f"Quality replacement blocked: {reason}")
                 # Don't replace - skip this update
