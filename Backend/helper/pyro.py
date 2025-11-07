@@ -58,14 +58,24 @@ def clean_filename(filename):
     if not filename:
         return "unknown_file"
     
+    # Remove @username patterns
     pattern = r'_@[A-Za-z]+_|@[A-Za-z]+_|[\[\]\s@]*@[^.\s\[\]]+[\]\[\s@]*'
     cleaned_filename = re.sub(pattern, '', filename)
     
+    # Remove leading special characters and prefixes (like {-, [-, ~, •, etc.)
+    # This fixes issues where channels add prefixes like "{- Movie Name"
+    cleaned_filename = re.sub(r'^[\{\[\(\~\•\-\s\|]+', '', cleaned_filename)
+    
+    # Remove trailing special characters
+    cleaned_filename = re.sub(r'[\}\]\)\~\•\-\s\|]+(?=\.\w+$)', '', cleaned_filename)
+    
+    # Remove extra audio/streaming keywords
     cleaned_filename = re.sub(
         r'(?<=\W)(org|AMZN|DDP|DD|NF|AAC|TVDL|5\.1|2\.1|2\.0|7\.0|7\.1|5\.0|~|\b\w+kbps\b)(?=\W)', 
         ' ', cleaned_filename, flags=re.IGNORECASE
     )
     
+    # Clean up extra spaces
     cleaned_filename = re.sub(r'\s+', ' ', cleaned_filename).strip().replace(' .', '.')
     
     return cleaned_filename if cleaned_filename else "unknown_file"
