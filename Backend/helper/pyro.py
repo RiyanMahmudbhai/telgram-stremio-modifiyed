@@ -117,6 +117,11 @@ def extract_tmdb_id(url):
     imdb_match = re.search(r'/title/(tt\d+)', url)
     if imdb_match:
         return imdb_match.group(1)
+
+    # Match TMDb URLs
+    tmdb_match = re.search(r'/((movie|tv))/(\d+)', url)
+    if tmdb_match:
+        return tmdb_match.group(3)
     
     return None
 
