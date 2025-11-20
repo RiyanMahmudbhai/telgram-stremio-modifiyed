@@ -161,9 +161,7 @@ async def fetch_tv_metadata(title, season, episode, encoded_string, year=None, q
         
         tv_id = tmdb_result.id
         try:
-        try:
             tv_details = await tmdb.tv(tv_id).details(append_to_response="external_ids,credits,images")
-        except Exception as e:
         except Exception as e:
             LOGGER.warning(f"TMDb TV details failed for {title}: {e}")
             return None
@@ -279,9 +277,7 @@ async def fetch_movie_metadata(title, encoded_string, year=None, quality=None, d
             return None
         
         try:
-        try:
             movie_details = await tmdb.movie(tmdb_result.id).details(append_to_response="external_ids,credits,images")
-        except Exception as e:
         except Exception as e:
             LOGGER.warning(f"TMDb movie details failed for {title}: {e}")
             return None
